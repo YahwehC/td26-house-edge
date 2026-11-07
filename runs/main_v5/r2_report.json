@@ -1,0 +1,201 @@
+{
+  "build": {
+    "exit_code": 0,
+    "verified": true,
+    "zip": "F:\\CYH\\projects\\datathon\\challenges\\house-edge\\dist\\main_v5.zip"
+  },
+  "check": {
+    "errors": [],
+    "ok": true
+  },
+  "counts": {
+    "test": {
+      "cutoff_max": 256,
+      "cutoff_min": 192,
+      "episodes": 192,
+      "machine_types": {
+        "balanced": 549,
+        "jackpot": 489,
+        "steady": 498
+      },
+      "machines": 1536,
+      "queries": 1536
+    },
+    "train": {
+      "conditions": {
+        "drift": 192,
+        "shared_change": 192,
+        "short_history": 192,
+        "stable": 192
+      },
+      "cutoff_max": 256,
+      "cutoff_min": 192,
+      "episodes": 96,
+      "machine_types": {
+        "balanced": 278,
+        "jackpot": 224,
+        "steady": 266
+      },
+      "machines": 768,
+      "queries": 768
+    },
+    "validation": {
+      "conditions": {
+        "drift": 192,
+        "shared_change": 192,
+        "short_history": 192,
+        "stable": 192
+      },
+      "cutoff_max": 256,
+      "cutoff_min": 192,
+      "episodes": 96,
+      "machine_types": {
+        "balanced": 234,
+        "jackpot": 265,
+        "steady": 269
+      },
+      "machines": 768,
+      "queries": 768
+    }
+  },
+  "data": "F:\\CYH\\projects\\datathon\\challenges\\house-edge\\kit\\public",
+  "elapsed_seconds": {
+    "1_metadata": 0.0,
+    "2_data": 0.845,
+    "3_fit_main": 4.587,
+    "4_fit_fallback": 6.187,
+    "5_validate": 7.359,
+    "6_choose": 0.0,
+    "7_refit": 29.742,
+    "8_predict_write_check": 15.183,
+    "9_build": 15.78
+  },
+  "exit_code": 0,
+  "main": {
+    "available": true,
+    "fallback_refit_ok": true,
+    "lag_rule": {
+      "loglik": {
+        "first": -16893.9,
+        "none": -17028.6,
+        "second": -17270.8
+      },
+      "rule": "first"
+    },
+    "refit_ok": true,
+    "top6_pairs": {
+      "1,3": 67,
+      "2,5": 59,
+      "4,7": 53
+    }
+  },
+  "max_points": 60.0,
+  "metadata": {
+    "data": {
+      "conditions": [
+        "stable",
+        "short_history",
+        "drift",
+        "shared_change"
+      ],
+      "counts_per_condition": {
+        "test": 48,
+        "train": 24,
+        "validation": 24
+      },
+      "history": "Machine-specific interactions, lags up to 8, missing observations and changing regimes.",
+      "machines_per_episode": 8,
+      "max_points": 60,
+      "mode": "event",
+      "reference": "Pooled, strength=20, fitted separately on this round's training observations.",
+      "round": "main",
+      "season_id": "5fffdc4d0c700bbf61c3f911",
+      "suite_version": "experimentation-suite-v3",
+      "target": "Next-spin probabilities for 0x, 1x, 2x, 5x, 20x.",
+      "test_policy": "Test targets, conditions and reference predictions stay private.",
+      "warning": "Public demo seeds are reconstructable; event seeds are private."
+    }
+  },
+  "name": "main_v5",
+  "total_seconds": 79.684,
+  "w_main": 0.9,
+  "weights": [
+    {
+      "R": 0.1201561664658566,
+      "points": 53.5639599157881,
+      "ratios": {
+        "drift": 0.1212,
+        "shared_change": 0.1027,
+        "short_history": 0.1933,
+        "stable": 0.0635
+      },
+      "w": 0.0
+    },
+    {
+      "R": 0.05027438300088631,
+      "points": 57.12792863572049,
+      "ratios": {
+        "drift": 0.0509,
+        "shared_change": 0.0414,
+        "short_history": 0.0768,
+        "stable": 0.032
+      },
+      "w": 0.5
+    },
+    {
+      "R": 0.037190350755606616,
+      "points": 57.848590623976804,
+      "ratios": {
+        "drift": 0.0359,
+        "shared_change": 0.0294,
+        "short_history": 0.0561,
+        "stable": 0.0273
+      },
+      "w": 0.7
+    },
+    {
+      "R": 0.03383448059169,
+      "points": 58.0363695798388,
+      "ratios": {
+        "drift": 0.0313,
+        "shared_change": 0.026,
+        "short_history": 0.0513,
+        "stable": 0.0267
+      },
+      "w": 0.8
+    },
+    {
+      "R": 0.03260270773358888,
+      "points": 58.105600102183715,
+      "ratios": {
+        "drift": 0.0285,
+        "shared_change": 0.0245,
+        "short_history": 0.0502,
+        "stable": 0.0272
+      },
+      "w": 0.9
+    },
+    {
+      "R": 0.03278335779421912,
+      "points": 58.09543651840576,
+      "ratios": {
+        "drift": 0.0279,
+        "shared_change": 0.0244,
+        "short_history": 0.0511,
+        "stable": 0.0278
+      },
+      "w": 0.95
+    },
+    {
+      "R": 0.03349503218130324,
+      "points": 58.055431455111595,
+      "ratios": {
+        "drift": 0.0277,
+        "shared_change": 0.0247,
+        "short_history": 0.0529,
+        "stable": 0.0288
+      },
+      "w": 1.0
+    }
+  ]
+}

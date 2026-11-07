@@ -38,6 +38,14 @@ def main(argv=None):
     if w < 1:
         params["blend"] = {"w_main": w}
         params["fallback"] = fit_fallback([load_split(data, "train")[0], load_split(data, "validation")[0]])
+    if not (HERE / "params.json").exists() or load_params(HERE / "params.json").get("logit_corr"):
+        # episode-heat logit correction: fitted on validation targets, using these params' own predictions
+        from he.api import predict_queries
+        from he.corr import fit_corr
+        vq, vex = load_split(data, "validation")
+        base = {k: v for k, v in params.items() if k != "logit_corr"}
+        K = (load_params(HERE / "params.json").get("logit_corr") or {}).get("K", 8) if (HERE / "params.json").exists() else 8
+        params["logit_corr"] = fit_corr(vq, predict_queries(vq, base), vex["targets"], K=K)
     save_params(Path(a.out), params)
     return 0
 

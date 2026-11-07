@@ -19,7 +19,8 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
 from check_csv import check
-from he.api import PARAMS_VERSION, fit_params, predict_split, save_params, write_submission
+from he.api import PARAMS_VERSION, fit_params, predict_queries, predict_split, save_params, write_submission
+from he.corr import apply_corr, fit_corr
 from he.fallback import fit_fallback, predict_fallback
 from he.model import load_split, official_score
 
@@ -103,6 +104,37 @@ def compact_votes(params):
         "joint_top6": joint_top,
     }
     return dict(top), compact
+
+
+def choose_logit_corr(val_q, val_extra, params, max_points, min_gain=0.02):
+    """CV-check the episode-heat correction on validation; return the full-validation fit or None."""
+    base_params = {k: v for k, v in params.items() if k != "logit_corr"}
+    pred = predict_queries(val_q, base_params)
+    targets = val_extra.get("targets") or []
+    if not targets:
+        print("[corr] no validation targets - skipped")
+        return None
+    base = official_score(pred, val_extra, val_q, max_points)["points"]
+    eps = sorted({q["episode_id"] for q in val_q})
+    fold = {e: i % 2 for i, e in enumerate(eps)}
+    best = None
+    for K in (8, 16):
+        cv = {}
+        for fo in (0, 1):
+            tr = [q for q in val_q if fold[q["episode_id"]] != fo]
+            te = [q for q in val_q if fold[q["episode_id"]] == fo]
+            c = fit_corr(tr, pred, targets, K=K)
+            cv.update(apply_corr(te, pred, c))
+        pts = official_score(cv, val_extra, val_q, max_points)["points"]
+        full = fit_corr(val_q, pred, targets, K=K)
+        print(f"[corr] K={K}: CV points {pts:.3f} vs {base:.3f} (gain {pts - base:+.3f}), full-fit beta {full['beta']:.3f}")
+        if pts - base >= min_gain and (best is None or pts > best[0]):
+            best = (pts, full)
+    if best is None:
+        print("[corr] not adopted")
+        return None
+    print(f"[corr] adopted K={best[1]['K']} beta={best[1]['beta']:.3f}")
+    return best[1]
 
 
 def main(argv=None):
@@ -275,6 +307,15 @@ def main(argv=None):
         params = dict(main_full)
         params["blend"] = {"w_main": w_star}
         params["fallback"] = fb_full
+    # step 7b: episode-heat logit correction, adopted only if 2-fold CV (by episode) on validation gains
+    try:
+        corr = choose_logit_corr(val_q, val_extra, params, args.max_points)
+        if corr:
+            params["logit_corr"] = corr
+    except Exception:
+        print("!!! logit correction FAILED; continuing without it")
+        traceback.print_exc()
+        params.pop("logit_corr", None)
     save_params(params_path, params)
     print(f"[refit] wrote {params_path}")
     timings["7_refit"] = elapsed(t0)
@@ -284,6 +325,8 @@ def main(argv=None):
     t0 = time.perf_counter()
     print("[step 8] writing validation predictions and test submission ...")
     val_blend = blend(main_pred, fb_pred, w_star)
+    if params.get("logit_corr"):
+        val_blend = apply_corr(val_q, val_blend, params["logit_corr"])
     write_submission(val_csv_path, val_blend)
     print(f"[write] {val_csv_path} ({len(val_blend)} rows)")
     _, _, test_pred = predict_split(data, "test", params)

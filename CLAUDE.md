@@ -52,7 +52,8 @@ uv's Python 3.13.14.
 | generic fallback alone (`he/fallback.py`, no generator knowledge) | 53.56 | 0.120 | 0.064 | 0.193 | 0.121 | 0.103 |
 | 0.9·main_v2 + 0.1·fallback = main_v3 (w by validation; 0.8–0.95 all ≥57.89) | 57.96 | 0.035 | 0.027 | 0.061 | 0.029 | 0.025 |
 | + size evidence from wins whose lag-L payout is unobserved (marginalized) | 58.06 | 0.034 | 0.029 | 0.053 | 0.028 | 0.025 |
-| **above blended 0.9/0.1 = main_v4** | **58.11** | 0.033 | 0.027 | 0.050 | 0.029 | 0.025 |
+| above blended 0.9/0.1 = main_v4 | 58.11 | 0.033 | 0.027 | 0.050 | 0.029 | 0.025 |
+| **+ episode-heat logit correction (K=8, β=0.19) = main_v5** (2-fold CV by episode) | **58.20** | 0.031 | 0.026 | 0.050 | 0.024 | 0.024 |
 Tried, no gain: others'-wins logit adjustment, additive lag effects, recency half-life, learned flip-time prior, EM P(L|pair).
 
 ## Prior-art research (Sat ~13:00, read-only; WebSearch backend was down → GitHub API/curl)
@@ -110,10 +111,20 @@ Tried, no gain: others'-wins logit adjustment, additive lag effects, recency hal
   regime-marginalized likelihood (`size_marg_missing`, short 0.064→0.053, +0.15). Soft-assigning missing-lag ticks
   to win cells (one EM step) hurt (−0.07) → not adopted.
 
+## Episode heat (Sat ~17:40, `eda/ev28-29.py`, `he/corr.py`)
+- Regressing logit(true win) − logit(ours) on validation: strongest predictor = mean net payout of the episode's 8
+  machines over the last 8–16 ticks (z=5.9 all, 3.3 stable-only); other machines alone also work (z≈5) ⇒ a hidden
+  time-varying episode "heat" raises win probs when the episode paid out recently (opposite of a house-edge clawback).
+- Logit correction β·(ep_net_K − μ): 2-fold CV +0.097 (K=8), betas 0.196/0.189 across folds. Decayed weights, big-
+  payout counts, wins-only versions all weaker. `r2.py` re-checks it by CV on the new kit and adopts only if ≥ +0.02.
+- Next idea if time: model the heat as a latent episode state (shared AR process) inside the Bayesian model instead
+  of a post-hoc logit shift.
+
 ## Status
 - [x] **Main entry ready**: `runs/main_v2/submission.csv` + `dist/main_v2.zip` (VERIFIED rerun, identical on Py3.13).
 - [x] main_v3 (blend, +0.06 val): `runs/main_v3/submission.csv` + `dist/main_v3.zip` (VERIFIED, identical on Py3.13).
-- [x] **main_v4 (58.11)**: `runs/main_v4/submission.csv` + `dist/main_v4.zip` (VERIFIED, identical on Py3.13) ← upload this.
+- [x] main_v4 (58.11): `runs/main_v4/submission.csv` + `dist/main_v4.zip` (VERIFIED, identical on Py3.13).
+- [x] **main_v5 (58.20 CV)**: `runs/main_v5/submission.csv` + `dist/main_v5.zip` (VERIFIED, Py3.13 identical, train.py re-fit identical) ← upload this.
 - [x] Round-2 runner `r2.py` + fallback ready; dry-run on main kit: exit 0, 88 s.
 - [ ] User: register team (form) and upload main CSV + ZIP before Sat 9 PM CT.
 - [ ] Round 2 at 9 PM (plan below).

@@ -51,7 +51,16 @@ def predict_split(public, split, params):
 
 
 def predict_queries(qs, params):
-    """Main model, optionally blended with the generic fallback: params["blend"] = {"w_main": w}."""
+    """Main model, optionally blended with the generic fallback (params["blend"] = {"w_main": w}),
+    then optionally the episode-heat logit correction (params["logit_corr"], see he/corr.py)."""
+    pred = _predict_blend(qs, params)
+    if params.get("logit_corr"):
+        from .corr import apply_corr
+        pred = apply_corr(qs, pred, params["logit_corr"])
+    return pred
+
+
+def _predict_blend(qs, params):
     w = float((params.get("blend") or {}).get("w_main", 1.0))
     use_main = w > 0 or not params.get("fallback")
     main = predict(qs, params["size_vectors"], params["cfg"]) if use_main else None

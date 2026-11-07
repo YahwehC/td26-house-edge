@@ -22,6 +22,9 @@ Structured Bayesian forecaster (`he/`):
   win lags, optional single change point; size given win conditioned on one big-payout lag), averaged over
   contexts with empirical-Bayes priors. Final forecast = w * main + (1 - w) * fallback, with w
   (`params.json` -> `blend.w_main`) chosen on validation.
+- Episode-heat correction (`he/corr.py`): the win-probability logit is shifted by beta * (mean net payout of the
+  episode's 8 machines over the last K ticks - mu); beta, mu fitted on validation targets (least squares),
+  adopted only after a 2-fold by-episode cross-validation gain.
 
 ## Training / params.json
 `params.json` holds everything fitted from the round's public data: size vectors (from validation
