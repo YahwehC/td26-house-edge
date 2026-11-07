@@ -81,6 +81,19 @@ Tried, no gain: others'-wins logit adjustment, additive lag effects, recency hal
   - Episode random effect on cell levels: real (corr own vs mates' residual 0.31 hi / 0.22 lo, `eda/ep_effect.py`), but
     two-pass pooling (`hx/pool.py`, `eda/pool_test.py`) gives ≤ +0.01 points → not adopted.
 
+- 4th sweep (Sat ~16:15; Claude via DuckDuckGo + Codex + DeepSeek, briefs/answers in `research/`): new team repo
+  https://github.com/phillip-122/datathon-2026 = kit copy + starter outputs; kit README names the organizers' reference
+  repo https://github.com/tamu-datathon-org/slots-rl → **404 (private)**. Literature pointers: BASIC shared change
+  points across sequences https://arxiv.org/abs/1508.01280, Stan pooling case study
+  https://mc-stan.org/users/documentation/case-studies/pool-binary-trials.html, Bayesian context trees
+  https://arxiv.org/abs/2007.14900. Ideas tested on validation (all no gain, `eda/ev19-21.py`, flags in `hx/`):
+  common tick support for pair/lag likelihoods 57.73 / size-only 57.85 (drops data); plug-in fill of unequal supports
+  57.88; joint E[w·s] over pairs 57.903 (= baseline); hi-cell orientation: P(XNOR=1 is hi)=0.53, within-episode
+  agreement 0.508 vs 0.502 null, no type/slot/signal effect → random; slot offset on true logits not significant
+  (χ²≈12/7 dof); transductive priors (fit on train+val histories) 57.906 (+0.003). ⇒ main model at its ceiling;
+  remaining error ≈ irreducible cell-level uncertainty. Round-2 value: rule-family zoo (3-lag, pair switch at τ,
+  other size predicates) only if the new kit's validation shows main < fallback.
+
 ## Status
 - [x] **Main entry ready**: `runs/main_v2/submission.csv` + `dist/main_v2.zip` (VERIFIED rerun, identical on Py3.13).
 - [x] main_v3 (blend, +0.06 val): `runs/main_v3/submission.csv` + `dist/main_v3.zip` (VERIFIED, identical on Py3.13).

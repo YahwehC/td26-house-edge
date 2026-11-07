@@ -141,9 +141,17 @@ class WinMachine:
         self.pred_stable = {}  # pair -> predicted win prob at cutoff (no flip)
         self.pred_tau = {}     # pair -> list over taus
         base_w = (sum(1 for v in seq.values() if v > 0) + 1) / (len(seq) + 2)
+        lagset = sorted({x for pp in self.pairs for x in pp})
+        fill = cfg.get("fill_support")
+        if fill:
+            usable = {pp: {t for t in seq if (t - pp[0]) in seq and (t - pp[1]) in seq} for pp in self.pairs}
+            U = set().union(*usable.values())
         for p in self.pairs:
             A, B = p
-            ticks = sorted(t for t in seq if (t - A) in seq and (t - B) in seq)
+            if cfg.get("common_support"):
+                ticks = sorted(t for t in seq if all((t - x) in seq for x in lagset))
+            else:
+                ticks = sorted(t for t in seq if (t - A) in seq and (t - B) in seq)
             # cum counts: before index i -> counts[z][y]
             n = len(ticks)
             cz = [[[0, 0], [0, 0]]]  # cz[i][zidx][y]
@@ -223,6 +231,18 @@ class WinMachine:
                          [pre[1][0] + post[0][0], pre[1][1] + post[0][1]]]
                 lt.append(lml([(cells[0][1], cells[0][0]), (cells[1][1], cells[1][0])]))
                 pt.append(pred(cells, True))
+            if fill:
+                # plug-in likelihood for ticks other pairs can use but this pair cannot (equalizes supports)
+                ph = [(tot[z][1] + 0.5) / (tot[z][0] + tot[z][1] + 1.0) for z in (0, 1)]
+                extra = 0.0
+                for t in U - usable[p]:
+                    xa = (1.0 if seq[t - A] > 0 else 0.0) if (t - A) in seq else base_w
+                    xb = (1.0 if seq[t - B] > 0 else 0.0) if (t - B) in seq else base_w
+                    pz1 = xa * xb + (1 - xa) * (1 - xb)
+                    pw = pz1 * ph[1] + (1 - pz1) * ph[0]
+                    extra += math.log(pw if seq[t] > 0 else 1 - pw)
+                self.lml_stable[p] += extra
+                lt = [x + extra for x in lt]
             self.lml_tau[p] = lt
             self.pred_tau[p] = pt
         self.pair_logprior = pair_logprior

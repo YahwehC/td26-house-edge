@@ -15,7 +15,7 @@ def _mix(m, lmls, preds):
     ls = [m.pair_logprior[p] + l for p, l in zip(m.pairs, lmls)]
     tot = logsumexp(ls)
     ws = [math.exp(l - tot) for l in ls]
-    return tot, math.fsum(w * pr for w, pr in zip(ws, preds)), ws
+    return tot, math.fsum(w * pr for w, pr in zip(ws, preds)), ws, [w * pr for w, pr in zip(ws, preds)]
 
 
 def episode_posterior_joint(machines, cfg):
@@ -24,14 +24,15 @@ def episode_posterior_joint(machines, cfg):
     npair = len(machines[0].pairs)
     infos = []
     for m in machines:
-        ls, ps, wst = _mix(m, [m.lml_stable[p] for p in m.pairs], [m.pred_stable[p] for p in m.pairs])
-        lt, pt, wt = [], [], []
+        ls, ps, wst, wstp = _mix(m, [m.lml_stable[p] for p in m.pairs], [m.pred_stable[p] for p in m.pairs])
+        lt, pt, wt, wtp = [], [], [], []
         for i in range(len(m.taus)):
-            l, p, w = _mix(m, [m.lml_tau[pp][i] for pp in m.pairs], [m.pred_tau[pp][i] for pp in m.pairs])
+            l, p, w, wp = _mix(m, [m.lml_tau[pp][i] for pp in m.pairs], [m.pred_tau[pp][i] for pp in m.pairs])
             lt.append(l)
             pt.append(p)
             wt.append(w)
-        infos.append(dict(ls=ls, ps=ps, wst=wst, lt=lt, pt=pt, wt=wt))
+            wtp.append(wp)
+        infos.append(dict(ls=ls, ps=ps, wst=wst, lt=lt, pt=pt, wt=wt, wstp=wstp, wtp=wtp))
 
     def add(acc, ws, f):
         if f > 1e-15:
@@ -47,9 +48,10 @@ def episode_posterior_joint(machines, cfg):
     logs["stable"] = math.fsum(i["ls"] for i in infos)
     preds["stable"] = [i["ps"] for i in infos]
     pws["stable"] = [i["wst"] for i in infos]
+    pwp = {"stable": [i["wstp"] for i in infos]}
     if pri.get("drift", 0) > 0:
         rho = cfg["drift_rho"]
-        ld, pd_, pw_d = 0.0, [], []
+        ld, pd_, pw_d, pwp_d = 0.0, [], [], []
         for m, i in zip(machines, infos):
             tl = tau_logprior(m.taus, m.q["cutoff"], cfg.get("tau_hist_drift"), bw)
             terms = [math.log(rho) + a + b for a, b in zip(tl, i["lt"])]
@@ -64,7 +66,13 @@ def episode_posterior_joint(machines, cfg):
             for w, ws in zip(tp, i["wt"]):
                 add(acc, ws, w)
             pw_d.append(acc)
+            accp = [0.0] * npair
+            add(accp, i["wstp"], wst)
+            for w, ws in zip(tp, i["wtp"]):
+                add(accp, ws, w)
+            pwp_d.append(accp)
         logs["drift"], preds["drift"], pws["drift"] = ld, pd_, pw_d
+        pwp["drift"] = pwp_d
     if same_cut and pri.get("shared", 0) > 0:
         rs = cfg["shared_rho"]
         tl = tau_logprior(machines[0].taus, cut, cfg.get("tau_hist_shared"), bw)
@@ -85,21 +93,26 @@ def episode_posterior_joint(machines, cfg):
         tps = [math.exp(t - L) for t, _, _ in per_tau]
         logs["shared"] = L
         preds["shared"] = [math.fsum(w * pt[1][j] for w, pt in zip(tps, per_tau)) for j in range(len(infos))]
-        pw_s = []
+        pw_s, pwp_s = [], []
         for j, i in enumerate(infos):
             acc = [0.0] * npair
+            accp = [0.0] * npair
             for k, w in enumerate(tps):
                 if w > 1e-15:
                     wa = per_tau[k][2][j]
                     add(acc, i["wt"][k], w * wa)
                     add(acc, i["wst"], w * (1 - wa))
+                    add(accp, i["wtp"][k], w * wa)
+                    add(accp, i["wstp"], w * (1 - wa))
             pw_s.append(acc)
+            pwp_s.append(accp)
         pws["shared"] = pw_s
+        pwp["shared"] = pwp_s
     names = [n for n in logs if pri.get(n, 0) > 0]
     lj = {n: math.log(pri[n]) + logs[n] for n in names}
     LE = logsumexp(list(lj.values()))
     post = {n: math.exp(lj[n] - LE) for n in names}
-    out, pair_post = [], []
+    out, pair_post, pair_wp = [], [], []
     for j in range(len(infos)):
         out.append(math.fsum(post[n] * preds[n][j] for n in names))
         acc = [0.0] * npair
@@ -107,7 +120,11 @@ def episode_posterior_joint(machines, cfg):
             add(acc, pws[n][j], post[n])
         z = math.fsum(acc)
         pair_post.append({p: a / z for p, a in zip(machines[0].pairs, acc)})
-    return out, {"post": post, "pair_post": pair_post}
+        accp = [0.0] * npair
+        for n in names:
+            add(accp, pwp[n][j], post[n])
+        pair_wp.append({p: a / z for p, a in zip(machines[0].pairs, accp)})
+    return out, {"post": post, "pair_post": pair_post, "pair_wp": pair_wp}
 
 
 class SizeEvidence:
@@ -120,6 +137,8 @@ class SizeEvidence:
         self.Vn = [[(1 - eps) * V[r][k] + eps * V[1 - r][k] for k in range(4)] for r in (0, 1)]
         LV = [[math.log(x) for x in v] for v in self.Vn]
         wins = [(t, SIZE_IDX[v]) for t, v in seq.items() if v > 0]
+        if cfg.get("common_support_size"):
+            wins = [(t, k) for t, k in wins if all((t - L) in seq for L in range(1, MAXLAG + 1))]
         self.const = [math.fsum(LV[r][k] for _, k in wins) for r in (0, 1)]
         nb = sum(1 for v in seq.values() if v >= 2)
         pb = (nb + 1) / (len(seq) + 2)
@@ -185,7 +204,12 @@ def predict_joint(queries, vecs, cfg=None):
             w = min(max(w, 1e-6), 1 - 1e-6)
             se, pp = per_pair[j]
             post = diag["pair_post"][j]
-            r1 = math.fsum(post[p] * pp[p][1] for p in post)
+            if cfg.get("joint_cov"):
+                wp = diag["pair_wp"][j]
+                zz = math.fsum(wp.values())
+                r1 = math.fsum(wp[p] * pp[p][1] for p in wp) / zz if zz > 0 else 0.5
+            else:
+                r1 = math.fsum(post[p] * pp[p][1] for p in post)
             sz = [(1 - r1) * se.Vn[0][k] + r1 * se.Vn[1][k] for k in range(4)]
             out[q["query_id"]] = [1 - w] + [w * s for s in sz]
     return out
