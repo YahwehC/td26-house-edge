@@ -132,6 +132,7 @@ Tried, no gain: others'-wins logit adjustment, additive lag effects, recency hal
 - The validation-fitted "heat" (main_v5) was mostly a proxy for this and is unstable across CV splits → replaced.
 - `r2.py` now fits the coupling on the new kit's train ticks automatically (candidates: others' wins lags 1..8,
   others' net), checks it out-of-sample on validation targets (adopt if ≥ +0.02), then refits on train+val ticks.
+- Homogeneous on the logit scale: hi cells β=+0.093, lo cells +0.100 (`eda/ev39.py`) ⇒ logit-additive form is right.
 - Ideas left: coupling inside the cell estimation (offset per tick in the Beta-Binomial), static episode offset.
 
 ## Status
