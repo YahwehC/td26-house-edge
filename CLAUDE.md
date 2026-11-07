@@ -58,6 +58,11 @@ Tried, no gain: others'-wins logit adjustment, additive lag effects, recency hal
   (low-weight fallback component, chosen on new validation).
 - Squared error vs true probs: posterior predictive mean is optimal → no tempering/sharpening; gains only from priors.
 - Conclusion: nothing found that replaces our model; no reusable library worth adopting for main.
+- 2nd sweep (Sat ~13:30, DuckDuckGo html via browser + GitHub pages; WebSearch tool broken): Reddit/Instagram/TikTok/X
+  only have event promo posts; no House Edge discussion. GitHub repos created since Nov 6 with house-edge/datathon names:
+  the 2 House Edge team repos still empty, others unrelated. Re-check before round 2 is optional.
+- Insurance test: blending ε·pooled reference into our forecast: ε=0.01 → 57.897, 0.03 → 57.85, 0.10 → 57.37
+  (hurts in-family). Use only in round 2 if new validation shows the rule family no longer fits.
 
 ## Status
 - [x] **Main entry ready**: `runs/main_v2/submission.csv` + `dist/main_v2.zip` (VERIFIED rerun, identical on Py3.13).
