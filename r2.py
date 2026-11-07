@@ -20,7 +20,8 @@ sys.path.insert(0, str(ROOT))
 
 from check_csv import check
 from he.api import PARAMS_VERSION, fit_params, predict_queries, predict_split, save_params, write_submission
-from he.corr import apply_corr, fit_corr
+from he.corr import apply_corr
+from he.coupling import fit_coupling
 from he.fallback import fit_fallback, predict_fallback
 from he.model import load_split, official_score
 
@@ -106,35 +107,30 @@ def compact_votes(params):
     return dict(top), compact
 
 
-def choose_logit_corr(val_q, val_extra, params, max_points, min_gain=0.02):
-    """CV-check the episode-heat correction on validation; return the full-validation fit or None."""
+def choose_logit_corr(val_q, val_extra, params, max_points, train_q=None, train_extra=None, min_gain=0.02):
+    """Cross-machine coupling (he/coupling.py): fit on TRAIN ticks, check out-of-sample on validation targets;
+    if it gains >= min_gain, refit on train+validation ticks (histories only) and return it, else None."""
+    if not val_extra.get("targets") or train_q is None:
+        print("[corr] no validation targets / train - skipped")
+        return None
+    cm = lambda ex: {r["query_id"]: r["condition"] for r in (ex or {}).get("conditions", [])}
     base_params = {k: v for k, v in params.items() if k != "logit_corr"}
     pred = predict_queries(val_q, base_params)
-    targets = val_extra.get("targets") or []
-    if not targets:
-        print("[corr] no validation targets - skipped")
+    base = official_score(pred, val_extra, val_q, max_points)
+    c_tr = fit_coupling([train_q], [cm(train_extra)])
+    if not c_tr:
+        print("[corr] nothing significant on train ticks - not adopted")
         return None
-    base = official_score(pred, val_extra, val_q, max_points)["points"]
-    eps = sorted({q["episode_id"] for q in val_q})
-    fold = {e: i % 2 for i, e in enumerate(eps)}
-    best = None
-    for K in (8, 16):
-        cv = {}
-        for fo in (0, 1):
-            tr = [q for q in val_q if fold[q["episode_id"]] != fo]
-            te = [q for q in val_q if fold[q["episode_id"]] == fo]
-            c = fit_corr(tr, pred, targets, K=K)
-            cv.update(apply_corr(te, pred, c))
-        pts = official_score(cv, val_extra, val_q, max_points)["points"]
-        full = fit_corr(val_q, pred, targets, K=K)
-        print(f"[corr] K={K}: CV points {pts:.3f} vs {base:.3f} (gain {pts - base:+.3f}), full-fit beta {full['beta']:.3f}")
-        if pts - base >= min_gain and (best is None or pts > best[0]):
-            best = (pts, full)
-    if best is None:
+    s = official_score(apply_corr(val_q, pred, c_tr), val_extra, val_q, max_points)
+    gain = s["points"] - base["points"]
+    print(f"[corr] train-fitted coupling on validation: {base['points']:.3f} -> {s['points']:.3f} ({gain:+.3f}) "
+          f"ratios {s['ratios']}")
+    if gain < min_gain:
         print("[corr] not adopted")
         return None
-    print(f"[corr] adopted K={best[1]['K']} beta={best[1]['beta']:.3f}")
-    return best[1]
+    c = fit_coupling([train_q, val_q], [cm(train_extra), cm(val_extra)])
+    print(f"[corr] adopted (refit on train+validation ticks): {c and c['names']}")
+    return c
 
 
 def main(argv=None):
@@ -309,7 +305,7 @@ def main(argv=None):
         params["fallback"] = fb_full
     # step 7b: episode-heat logit correction, adopted only if 2-fold CV (by episode) on validation gains
     try:
-        corr = choose_logit_corr(val_q, val_extra, params, args.max_points)
+        corr = choose_logit_corr(val_q, val_extra, params, args.max_points, train_q, splits["train"][1])
         if corr:
             params["logit_corr"] = corr
     except Exception:

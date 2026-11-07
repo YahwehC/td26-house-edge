@@ -53,7 +53,9 @@ uv's Python 3.13.14.
 | 0.9·main_v2 + 0.1·fallback = main_v3 (w by validation; 0.8–0.95 all ≥57.89) | 57.96 | 0.035 | 0.027 | 0.061 | 0.029 | 0.025 |
 | + size evidence from wins whose lag-L payout is unobserved (marginalized) | 58.06 | 0.034 | 0.029 | 0.053 | 0.028 | 0.025 |
 | above blended 0.9/0.1 = main_v4 | 58.11 | 0.033 | 0.027 | 0.050 | 0.029 | 0.025 |
-| **+ episode-heat logit correction (K=8, β=0.19) = main_v5** (2-fold CV by episode) | **58.20** | 0.031 | 0.026 | 0.050 | 0.024 | 0.024 |
+| + episode-heat logit correction (K=8, β=0.19) = main_v5 (alternating 2-fold CV; block split −0.03 ⇒ unstable) | 58.20 | 0.031 | 0.026 | 0.050 | 0.024 | 0.024 |
+| **main_v4 + cross-machine lag-3 coupling fitted on TRAIN ticks only = main_v6** (out-of-sample on val) | **58.20** | 0.031 | 0.024 | 0.051 | 0.025 | 0.024 |
+| (main_v6 final params: coupling refit on train+val ticks, adds oth_net_8; val targets unused) | 58.23 | | 0.024 | 0.052 | 0.023 | 0.023 |
 Tried, no gain: others'-wins logit adjustment, additive lag effects, recency half-life, learned flip-time prior, EM P(L|pair).
 
 ## Prior-art research (Sat ~13:00, read-only; WebSearch backend was down → GitHub API/curl)
@@ -122,11 +124,22 @@ Tried, no gain: others'-wins logit adjustment, additive lag effects, recency hal
 - Next idea if time: model the heat as a latent episode state (shared AR process) inside the Bayesian model instead
   of a post-hoc logit shift.
 
+## Cross-machine coupling (Sat ~18:30, `eda/ev31-38.py`, `he/coupling.py`)
+- Tick-level (train, 72k ticks, offset = LOO plug-in cell logit): win of machine i at t depends on the number of OTHER
+  machines that won at **t−3**: +0.09 logit per winner (z≈9-12), same for all pairs/types. Other lags 1..8 |z|<2.5;
+  others' net payout over 8 ticks +0.015 (z 4.8 on train+val). Own-machine net payout: no effect.
+- Residual cross-corr between machines: constant ≈0.008 at all lags (static episode offset) + spike at lag 3.
+- The validation-fitted "heat" (main_v5) was mostly a proxy for this and is unstable across CV splits → replaced.
+- `r2.py` now fits the coupling on the new kit's train ticks automatically (candidates: others' wins lags 1..8,
+  others' net), checks it out-of-sample on validation targets (adopt if ≥ +0.02), then refits on train+val ticks.
+- Ideas left: coupling inside the cell estimation (offset per tick in the Beta-Binomial), static episode offset.
+
 ## Status
 - [x] **Main entry ready**: `runs/main_v2/submission.csv` + `dist/main_v2.zip` (VERIFIED rerun, identical on Py3.13).
 - [x] main_v3 (blend, +0.06 val): `runs/main_v3/submission.csv` + `dist/main_v3.zip` (VERIFIED, identical on Py3.13).
 - [x] main_v4 (58.11): `runs/main_v4/submission.csv` + `dist/main_v4.zip` (VERIFIED, identical on Py3.13).
-- [x] **main_v5 (58.20 CV)**: `runs/main_v5/submission.csv` + `dist/main_v5.zip` (VERIFIED, Py3.13 identical, train.py re-fit identical) ← upload this.
+- [x] main_v5 (58.20 CV, unstable): `runs/main_v5/` + `dist/main_v5.zip`.
+- [x] **main_v6 (58.20 out-of-sample)**: `runs/main_v6/submission.csv` + `dist/main_v6.zip` (VERIFIED, Py3.13 identical, train.py re-fit identical) ← upload this.
 - [x] Round-2 runner `r2.py` + fallback ready; dry-run on main kit: exit 0, 88 s.
 - [ ] User: register team (form) and upload main CSV + ZIP before Sat 9 PM CT.
 - [ ] Round 2 at 9 PM (plan below).

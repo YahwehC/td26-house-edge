@@ -38,14 +38,16 @@ def main(argv=None):
     if w < 1:
         params["blend"] = {"w_main": w}
         params["fallback"] = fit_fallback([load_split(data, "train")[0], load_split(data, "validation")[0]])
-    if not (HERE / "params.json").exists() or load_params(HERE / "params.json").get("logit_corr"):
-        # episode-heat logit correction: fitted on validation targets, using these params' own predictions
-        from he.api import predict_queries
-        from he.corr import fit_corr
+    bundled_corr = load_params(HERE / "params.json").get("logit_corr") if (HERE / "params.json").exists() else True
+    if bundled_corr:
+        # cross-machine coupling: logistic regression on train+validation per-tick outcomes (he/coupling.py)
+        from he.coupling import fit_coupling
+        tq, tex = load_split(data, "train")
         vq, vex = load_split(data, "validation")
-        base = {k: v for k, v in params.items() if k != "logit_corr"}
-        K = (load_params(HERE / "params.json").get("logit_corr") or {}).get("K", 8) if (HERE / "params.json").exists() else 8
-        params["logit_corr"] = fit_corr(vq, predict_queries(vq, base), vex["targets"], K=K)
+        cm = lambda ex: {r["query_id"]: r["condition"] for r in ex.get("conditions", [])}
+        c = fit_coupling([tq, vq], [cm(tex), cm(vex)], log=lambda *x: None)
+        if c:
+            params["logit_corr"] = c
     save_params(Path(a.out), params)
     return 0
 
