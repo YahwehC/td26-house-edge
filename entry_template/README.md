@@ -18,6 +18,10 @@ Structured Bayesian forecaster (`he/`):
   shared change (all machines flip at a common tick); lag pair and flip tick are marginalised exactly.
 - Payout size given a win: two size vectors per machine type; the active one is
   (payout at lag L >= 2) XOR sign, with L coupled to the win pair; posterior-mixed.
+- Insurance blend (`he/fallback.py`): a generic Bayesian context model (any boolean function of up to two
+  win lags, optional single change point; size given win conditioned on one big-payout lag), averaged over
+  contexts with empirical-Bayes priors. Final forecast = w * main + (1 - w) * fallback, with w
+  (`params.json` -> `blend.w_main`) chosen on validation.
 
 ## Training / params.json
 `params.json` holds everything fitted from the round's public data: size vectors (from validation
@@ -26,4 +30,5 @@ Re-create it with:
 ```sh
 python train.py --data /path/to/public --out params.json
 ```
-Validation (fitted on train only, official metric): see the team README; main round 57.9 / 60 points.
+(`--w-main` overrides the blend weight; default = the bundled value. Re-fit verified bit-identical.)
+Validation (fitted on train only, official metric): see the team README.

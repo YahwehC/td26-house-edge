@@ -33,6 +33,12 @@ uv's Python 3.13.14.
 - `api.py`: `fit_params(public, fit_splits)`, `predict_split`, `write_submission`, `save/load_params`, `score_validation`.
 - Pipeline: `run.py` (fit train → score val → refit train+val → predict test → check), `build_entry.py` (zip + rerun verify),
   `entry_template/` (predict.py, train.py, reproduce.json, README.md). `hx/` = scratch copy for experiments.
+- `fallback.py`: generic insurance model - BMA over win contexts (any boolean fn of <=2 lags in 1..8) x optional single
+  change point, size given win conditioned on one big-payout lag; EB priors; recovers the 3 pairs from scratch.
+  `api.predict_queries` blends `w*main + (1-w)*fallback` via `params["blend"]["w_main"]` (absent -> main only).
+- `r2.py --data <public> --name <n> [--max-points 40]`: one shot (~90 s): fit main+fallback on train, weight table on
+  validation, pick w*, refit train+val, test CSV + check, build+verify `dist/<n>.zip`, `runs/<n>/r2_report.json`.
+  If main crashes it continues with fallback only (w=0). Entry `train.py` re-fits blended params bit-identically.
 
 ## Validation log (validation split, official metric, main max 60; priors fitted on train only)
 | version | points | R | stable | short | drift | shared |
@@ -42,7 +48,9 @@ uv's Python 3.13.14.
 | v2 episode-level mixture | 56.80 | 0.056 | 0.039 | 0.112 | 0.041 | 0.034 |
 | + hi/lo type cell priors | 57.20 | 0.049 | 0.036 | 0.093 | 0.035 | 0.033 |
 | + learned structure priors, short→stable | 57.37 | 0.046 | 0.035 | 0.082 | 0.034 | 0.033 |
-| **+ joint pair↔size-lag (rule learned, δ=0.01) = main_v2** | **57.90** | 0.036 | 0.029 | 0.064 | 0.028 | 0.025 |
+| + joint pair↔size-lag (rule learned, δ=0.01) = main_v2 | 57.90 | 0.036 | 0.029 | 0.064 | 0.028 | 0.025 |
+| generic fallback alone (`he/fallback.py`, no generator knowledge) | 53.56 | 0.120 | 0.064 | 0.193 | 0.121 | 0.103 |
+| **0.9·main_v2 + 0.1·fallback = main_v3** (w by validation; 0.8–0.95 all ≥57.89) | **57.96** | 0.035 | 0.027 | 0.061 | 0.029 | 0.025 |
 Tried, no gain: others'-wins logit adjustment, additive lag effects, recency half-life, learned flip-time prior, EM P(L|pair).
 
 ## Prior-art research (Sat ~13:00, read-only; WebSearch backend was down → GitHub API/curl)
@@ -75,14 +83,16 @@ Tried, no gain: others'-wins logit adjustment, additive lag effects, recency hal
 
 ## Status
 - [x] **Main entry ready**: `runs/main_v2/submission.csv` + `dist/main_v2.zip` (VERIFIED rerun, identical on Py3.13).
+- [x] main_v3 (blend, +0.06 val): `runs/main_v3/submission.csv` + `dist/main_v3.zip` (VERIFIED, identical on Py3.13).
+- [x] Round-2 runner `r2.py` + fallback ready; dry-run on main kit: exit 0, 88 s.
 - [ ] User: register team (form) and upload main CSV + ZIP before Sat 9 PM CT.
 - [ ] Round 2 at 9 PM (plan below).
 
 ## Round-2 plan (Sat 9 PM → Sun 11 AM)
 1. Download new kit → `kit2/` (separate folder; check `public/metadata.json` round = adaptation).
-2. Baseline run unchanged: `.venv\Scripts\python.exe run.py --data kit2\public --out runs\r2_v0\submission.csv`
-   → read validation ratios; build ZIP immediately (`build_entry.py ... --data kit2\public --out dist\r2_v0.zip`)
-   and have user upload it as a safe first entry.
+2. `.venv\Scripts\python.exe r2.py --data kit2\public --name r2_v0` (max points default 40) → read the weight table
+   (main vs fallback per condition) → user uploads `runs\r2_v0\submission.csv` + `dist\r2_v0.zip` as safe first entry.
+   If fallback >> main, the rule family changed → spend the time on step 3.
 3. Check what changed ("which temporal relationships recur"): `params.json` votes (pairs, lags, lag_rule), episode
    classification counts, size vectors (2 per type still?), cell priors. Re-run EDA scripts (eda/eda3-4, eda9-10, ev15)
    on kit2 if votes look diffuse — the rule family itself may change (e.g. new pairs/triples, category-based cells).

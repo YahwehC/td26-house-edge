@@ -1,6 +1,9 @@
 """Re-fit params.json from a public/ data folder (train + validation). Pure stdlib, deterministic.
 
-    python train.py --data /path/to/public --out params.json
+    python train.py --data /path/to/public --out params.json [--w-main W]
+
+W = weight of the main model in the blend with the generic fallback model (he/fallback.py);
+default: the weight stored in the bundled params.json (chosen on validation by r2.py).
 """
 import sys
 sys.dont_write_bytecode = True
@@ -12,15 +15,30 @@ HERE = Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
-from he.api import fit_params, save_params
+from he.api import fit_params, load_params, save_params
+from he.fallback import fit_fallback
+from he.model import load_split
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Fit House Edge parameters")
     ap.add_argument("--data", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--w-main", type=float, default=None)
     a = ap.parse_args(argv)
-    save_params(Path(a.out), fit_params(Path(a.data), fit_splits=("train", "validation")))
+    w = a.w_main
+    if w is None:
+        bundled = HERE / "params.json"
+        w = float((load_params(bundled).get("blend") or {}).get("w_main", 1.0)) if bundled.exists() else 1.0
+    data = Path(a.data)
+    if w > 0:
+        params = fit_params(data, fit_splits=("train", "validation"))
+    else:
+        params = {"params_version": 1}
+    if w < 1:
+        params["blend"] = {"w_main": w}
+        params["fallback"] = fit_fallback([load_split(data, "train")[0], load_split(data, "validation")[0]])
+    save_params(Path(a.out), params)
     return 0
 
 

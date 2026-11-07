@@ -47,8 +47,21 @@ def fit_params(public, fit_splits=("train", "validation"), size_split="validatio
 
 def predict_split(public, split, params):
     qs, ex = load_split(Path(public), split)
-    pred = predict(qs, params["size_vectors"], params["cfg"])
-    return qs, ex, pred
+    return qs, ex, predict_queries(qs, params)
+
+
+def predict_queries(qs, params):
+    """Main model, optionally blended with the generic fallback: params["blend"] = {"w_main": w}."""
+    w = float((params.get("blend") or {}).get("w_main", 1.0))
+    use_main = w > 0 or not params.get("fallback")
+    main = predict(qs, params["size_vectors"], params["cfg"]) if use_main else None
+    if w >= 1 or not params.get("fallback"):
+        return main
+    from .fallback import predict_fallback
+    fb = predict_fallback(qs, params["fallback"])
+    if main is None:
+        return fb
+    return {k: [w * a + (1 - w) * b for a, b in zip(main[k], fb[k])] for k in main}
 
 
 def normalize_row(p):

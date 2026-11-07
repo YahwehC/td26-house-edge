@@ -13,3 +13,8 @@ pip-*/
 # official kit (re-download per GUIDE.txt)
 kit/
 kit_dl/
+
+# round-2 kit and zip build scratch
+kit2/
+kit2_dl/
+dist/*_src/
