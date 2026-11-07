@@ -63,6 +63,15 @@ Tried, no gain: others'-wins logit adjustment, additive lag effects, recency hal
   the 2 House Edge team repos still empty, others unrelated. Re-check before round 2 is optional.
 - Insurance test: blending ε·pooled reference into our forecast: ε=0.01 → 57.897, 0.03 → 57.85, 0.10 → 57.37
   (hurts in-family). Use only in round 2 if new validation shows the rule family no longer fits.
+- 3rd sweep: analogous projects (not datathon-specific). Kaggle Rock-Paper-Scissors (top bots = ensembles of lag-pattern
+  predictors, e.g. https://github.com/abdelghanibelgaid/RPS; solution index https://github.com/faridrashidi/kaggle-solutions)
+  ≈ our exact BMA over lag rules. Kaggle Santa 2020 bandit (exact posterior tracking of decaying win rates,
+  https://github.com/toshi-k/kaggle-santa-2020, https://www.kaggle.com/code/somnambwl/posteriordistribution)
+  ≈ our change-point mixture. BOCPD libs https://github.com/BayesOnBikes/bocd. HMM regime switching → tested below.
+  - Hidden-Markov "hot/cold" state: residual autocorrelation within stable machines ≈0 at gaps 1..20 (n≈80k) → no HMM gain
+    (`eda/hmm_check.py`).
+  - Episode random effect on cell levels: real (corr own vs mates' residual 0.31 hi / 0.22 lo, `eda/ep_effect.py`), but
+    two-pass pooling (`hx/pool.py`, `eda/pool_test.py`) gives ≤ +0.01 points → not adopted.
 
 ## Status
 - [x] **Main entry ready**: `runs/main_v2/submission.csv` + `dist/main_v2.zip` (VERIFIED rerun, identical on Py3.13).

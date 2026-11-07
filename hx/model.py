@@ -124,12 +124,14 @@ class WinMachine:
         a0, b0 = cfg["beta_a"], cfg["beta_b"]
         cp = (cfg.get("cell_prior") or {}).get(q["machine_type"])
         if cp:
-            def beta_of(spec):
+            off = q.get("_cell_offset") or {}
+
+            def beta_of(spec, nm):
                 mu, slope, kappa = spec
-                p = 1 / (1 + math.exp(-(mu + slope * q["signal"])))
-                k = kappa * cfg.get("kappa_scale", 1.0)
+                p = 1 / (1 + math.exp(-(mu + slope * q["signal"] + off.get(nm, 0.0))))
+                k = kappa * cfg.get("kappa_scale", 1.0) * (cfg.get("offset_kappa_mult", 1.0) if off else 1.0)
                 return (k * p, k * (1 - p))
-            BH, BLO = beta_of(cp["hi"]), beta_of(cp["lo"])
+            BH, BLO = beta_of(cp["hi"], "hi"), beta_of(cp["lo"], "lo")
         else:
             BH = BLO = None
         self.taus = list(range(cfg["tau_lo"], c + 1))  # tau == c: flip right now (no evidence)
