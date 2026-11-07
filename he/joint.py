@@ -127,9 +127,13 @@ class SizeEvidence:
         for L in range(1, MAXLAG + 1):
             xs = [(seq[t - L] >= 2, k) for t, k in wins if (t - L) in seq]
             big_c = {seq[c - L] >= 2: 1.0} if (c - L) in seq else {True: pb, False: 1 - pb}
+            miss = [k for t, k in wins if (t - L) not in seq] if cfg.get("size_marg_missing") else []
             row = []
             for s in (0, 1):
                 ll = math.fsum(LV[int(b) ^ s][k] for b, k in xs)
+                if miss:
+                    # lag payout unobserved (sampled old ticks): marginalize the regime bit with the big-payout rate
+                    ll += math.fsum(math.log((1 - pb) * self.Vn[s][k] + pb * self.Vn[1 - s][k]) for k in miss)
                 pr1 = math.fsum(pp for b, pp in big_c.items() if (int(b) ^ s) == 1)
                 row.append((ll, pr1))
             self.lag[L] = row

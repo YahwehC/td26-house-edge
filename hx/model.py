@@ -126,12 +126,21 @@ class WinMachine:
         if cp:
             off = q.get("_cell_offset") or {}
 
-            def beta_of(spec, nm):
+            sh = cfg.get("shared_sd", 0.0)
+
+            def beta_of(spec, nm, delta=0.0):
                 mu, slope, kappa = spec
-                p = 1 / (1 + math.exp(-(mu + slope * q["signal"] + off.get(nm, 0.0))))
-                k = kappa * cfg.get("kappa_scale", 1.0) * (cfg.get("offset_kappa_mult", 1.0) if off else 1.0)
+                p = 1 / (1 + math.exp(-(mu + slope * q["signal"] + off.get(nm, 0.0) + delta)))
+                k = kappa * cfg.get("kappa_scale", 1.0) * (cfg.get("offset_kappa_mult", 1.0) if (off or sh) else 1.0)
                 return (k * p, k * (1 - p))
             BH, BLO = beta_of(cp["hi"], "hi"), beta_of(cp["lo"], "lo")
+            if sh:
+                # machine-level shared logit offset on both cells: 5-point Gauss-Hermite over N(0, shared_sd^2)
+                GH = [(-2.8569700139, 0.0112574113), (-1.3556261800, 0.2220759220), (0.0, 0.5333333333),
+                      (1.3556261800, 0.2220759220), (2.8569700139, 0.0112574113)]
+                grid = [(math.log(w), beta_of(cp["hi"], "hi", sh * x), beta_of(cp["lo"], "lo", sh * x)) for x, w in GH]
+            else:
+                grid = None
         else:
             BH = BLO = None
         self.taus = list(range(cfg["tau_lo"], c + 1))  # tau == c: flip right now (no evidence)
@@ -164,6 +173,39 @@ class WinMachine:
                 nxt[z][y] += 2.0 ** (-(c - 1 - t) / hl) if hl else 1
                 cz.append(nxt)
             tot = cz[-1]
+            if cfg.get("win_marg_missing"):
+                # ticks with an unobserved lag bit: soft-assign to the cells (one EM step with plug-in cell rates)
+                r = [(tot[z][1] + 0.5) / (tot[z][0] + tot[z][1] + 1.0) for z in (0, 1)]
+                soft = []
+                for t in seq:
+                    if (t - A) in seq and (t - B) in seq:
+                        continue
+                    xa = [(seq[t - A] > 0, 1.0)] if (t - A) in seq else [(True, base_w), (False, 1 - base_w)]
+                    xb = [(seq[t - B] > 0, 1.0)] if (t - B) in seq else [(True, base_w), (False, 1 - base_w)]
+                    pz1 = math.fsum(pa * pb for va, pa in xa for vb, pb in xb if va == vb)
+                    y = 1 if seq[t] > 0 else 0
+                    l1 = pz1 * (r[1] if y else 1 - r[1])
+                    l0 = (1 - pz1) * (r[0] if y else 1 - r[0])
+                    soft.append((t, y, l1 / (l0 + l1)))
+                if soft:
+                    allt = sorted([(t, None) for t in ticks] + [(t, sw) for t, _, sw in soft])
+                    sy = {t: (y, sw) for t, y, sw in soft}
+                    cz = [[[0.0, 0.0], [0.0, 0.0]]]
+                    ticks = []
+                    for t, sw in allt:
+                        prev = cz[-1]
+                        nxt = [prev[0][:], prev[1][:]]
+                        y = 1 if seq[t] > 0 else 0
+                        if sw is None:
+                            z = 1 if (seq[t - A] > 0) == (seq[t - B] > 0) else 0
+                            nxt[z][y] += 1
+                        else:
+                            nxt[1][y] += sw
+                            nxt[0][y] += 1 - sw
+                        cz.append(nxt)
+                        ticks.append(t)
+                    n = len(ticks)
+                    tot = cz[-1]
             # state at cutoff
             if (c - A) in seq and (c - B) in seq:
                 zc_probs = {1 if (seq[c - A] > 0) == (seq[c - B] > 0) else 0: 1.0}
@@ -192,7 +234,7 @@ class WinMachine:
                 def bb(pr, w, l):
                     return betaln(pr[0] + w, pr[1] + l) - betaln(pr[0], pr[1])
 
-                def assign(cells):
+                def assign(cells, BH=BH, BLO=BLO):
                     # cells given as [(w, l), (w, l)]; returns log ML and P(cell1 is hi)
                     (w0, l0), (w1, l1) = cells
                     x = bb(BH, w1, l1) + bb(BLO, w0, l0)   # cell1 hi
@@ -200,12 +242,7 @@ class WinMachine:
                     m = max(x, y)
                     return m + math.log(0.5 * math.exp(x - m) + 0.5 * math.exp(y - m)), 1 / (1 + math.exp(y - x))
 
-                def lml(cells):
-                    return assign(cells)[0]
-
-                def pred(cells, flipped):
-                    (l0, w0), (l1, w1) = cells
-                    _, p1hi = assign([(w0, l0), (w1, l1)])
+                def pred1(cells, flipped, p1hi, BH, BLO):
                     out = 0.0
                     for zc, pz in zc_probs.items():
                         e = (1 - zc) if flipped else zc
@@ -215,6 +252,24 @@ class WinMachine:
                         phi = p1hi if e == 1 else 1 - p1hi
                         out += pz * (phi * mh + (1 - phi) * ml)
                     return out
+
+                if grid is None:
+                    def lml(cells):
+                        return assign(cells)[0]
+
+                    def pred(cells, flipped):
+                        (l0, w0), (l1, w1) = cells
+                        _, p1hi = assign([(w0, l0), (w1, l1)])
+                        return pred1(cells, flipped, p1hi, BH, BLO)
+                else:
+                    def lml(cells):
+                        return logsumexp([lw + assign(cells, bh, bl)[0] for lw, bh, bl in grid])
+
+                    def pred(cells, flipped):
+                        (l0, w0), (l1, w1) = cells
+                        parts = [(lw + a[0], a[1], bh, bl) for lw, bh, bl in grid for a in [assign([(w0, l0), (w1, l1)], bh, bl)]]
+                        tot = logsumexp([x[0] for x in parts])
+                        return math.fsum(math.exp(x[0] - tot) * pred1(cells, flipped, x[1], x[2], x[3]) for x in parts)
 
             st_cells = [tot[0], tot[1]]
             self.lml_stable[p] = lml([(st_cells[0][1], st_cells[0][0]), (st_cells[1][1], st_cells[1][0])])

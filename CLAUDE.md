@@ -50,7 +50,9 @@ uv's Python 3.13.14.
 | + learned structure priors, short→stable | 57.37 | 0.046 | 0.035 | 0.082 | 0.034 | 0.033 |
 | + joint pair↔size-lag (rule learned, δ=0.01) = main_v2 | 57.90 | 0.036 | 0.029 | 0.064 | 0.028 | 0.025 |
 | generic fallback alone (`he/fallback.py`, no generator knowledge) | 53.56 | 0.120 | 0.064 | 0.193 | 0.121 | 0.103 |
-| **0.9·main_v2 + 0.1·fallback = main_v3** (w by validation; 0.8–0.95 all ≥57.89) | **57.96** | 0.035 | 0.027 | 0.061 | 0.029 | 0.025 |
+| 0.9·main_v2 + 0.1·fallback = main_v3 (w by validation; 0.8–0.95 all ≥57.89) | 57.96 | 0.035 | 0.027 | 0.061 | 0.029 | 0.025 |
+| + size evidence from wins whose lag-L payout is unobserved (marginalized) | 58.06 | 0.034 | 0.029 | 0.053 | 0.028 | 0.025 |
+| **above blended 0.9/0.1 = main_v4** | **58.11** | 0.033 | 0.027 | 0.050 | 0.029 | 0.025 |
 Tried, no gain: others'-wins logit adjustment, additive lag effects, recency half-life, learned flip-time prior, EM P(L|pair).
 
 ## Prior-art research (Sat ~13:00, read-only; WebSearch backend was down → GitHub API/curl)
@@ -94,9 +96,24 @@ Tried, no gain: others'-wins logit adjustment, additive lag effects, recency hal
   remaining error ≈ irreducible cell-level uncertainty. Round-2 value: rule-family zoo (3-lag, pair switch at τ,
   other size predicates) only if the new kit's validation shows main < fallback.
 
+## Error anatomy (Sat ~17:00, `eda/ev22-27.py`) — where the remaining error is
+- Oracle test on validation: true win prob + our size dist → 59.64; our win prob + true size dist → 58.25. ⇒ almost all
+  remaining error is the win probability; size is near-perfect except short_history.
+- Stable machines with ≥100 observations in the active cell: MSE(ours−true) 0.0033 vs Binomial posterior var 0.0007.
+  No history feature explains it (payout sizes at lags 1–8, recent/cumulative net, time, parity: all spreads ≤0.013,
+  `eda/ev24.py`) and residual autocorrelation ≈0 ⇒ the simulator adds **per-tick iid noise on the cell logit**
+  (sd ≈0.5); its variance (~0.0025 in win prob) is irreducible from history. Stable error is at that floor.
+- True win probs are continuous (no discrete levels); hi/lo cell logits of one machine correlate ≈0.4 (balanced,
+  steady), 0.1 (jackpot). Shared-offset joint prior (5-pt GH, `shared_sd`): +0.01 → not adopted.
+- Size sign s: P(s=1)≈0.41, not predictable from type/signal/pair/orientation/slot; r1 is well calibrated on short
+  episodes ⇒ short size error = little data. Fix adopted: wins whose lag-L payout is unobserved now contribute a
+  regime-marginalized likelihood (`size_marg_missing`, short 0.064→0.053, +0.15). Soft-assigning missing-lag ticks
+  to win cells (one EM step) hurt (−0.07) → not adopted.
+
 ## Status
 - [x] **Main entry ready**: `runs/main_v2/submission.csv` + `dist/main_v2.zip` (VERIFIED rerun, identical on Py3.13).
 - [x] main_v3 (blend, +0.06 val): `runs/main_v3/submission.csv` + `dist/main_v3.zip` (VERIFIED, identical on Py3.13).
+- [x] **main_v4 (58.11)**: `runs/main_v4/submission.csv` + `dist/main_v4.zip` (VERIFIED, identical on Py3.13) ← upload this.
 - [x] Round-2 runner `r2.py` + fallback ready; dry-run on main kit: exit 0, 88 s.
 - [ ] User: register team (form) and upload main CSV + ZIP before Sat 9 PM CT.
 - [ ] Round 2 at 9 PM (plan below).

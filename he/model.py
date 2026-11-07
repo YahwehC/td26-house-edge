@@ -99,6 +99,7 @@ DEFAULT_CFG = {
     "size_lag_other": 0.05,
     "size_const": 0.05,         # prior mass for constant size regime (each)
     "size_eps": 0.02,           # regime noise
+    "size_marg_missing": True,  # use wins whose lag-L payout is unobserved (validation +0.15)
 }
 
 

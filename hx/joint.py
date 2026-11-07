@@ -146,9 +146,13 @@ class SizeEvidence:
         for L in range(1, MAXLAG + 1):
             xs = [(seq[t - L] >= 2, k) for t, k in wins if (t - L) in seq]
             big_c = {seq[c - L] >= 2: 1.0} if (c - L) in seq else {True: pb, False: 1 - pb}
+            miss = [k for t, k in wins if (t - L) not in seq] if cfg.get("size_marg_missing") else []
             row = []
             for s in (0, 1):
                 ll = math.fsum(LV[int(b) ^ s][k] for b, k in xs)
+                if miss:
+                    # lag payout unobserved: marginalize the regime bit with the machine's big-payout rate
+                    ll += math.fsum(math.log((1 - pb) * self.Vn[s][k] + pb * self.Vn[1 - s][k]) for k in miss)
                 pr1 = math.fsum(pp for b, pp in big_c.items() if (int(b) ^ s) == 1)
                 row.append((ll, pr1))
             self.lag[L] = row
@@ -158,8 +162,9 @@ class SizeEvidence:
         h = [(math.log(pc) + self.const[r], float(r)) for r in (0, 1)]
         for L, pw in lag_prior.items():
             if pw > 0:
-                for ll, pr1 in self.lag[L]:
-                    h.append((math.log((1 - 2 * pc) * pw * 0.5) + ll, pr1))
+                p1 = cfg.get("size_s1_prior", 0.5)
+                for s, (ll, pr1) in enumerate(self.lag[L]):
+                    h.append((math.log((1 - 2 * pc) * pw * (p1 if s == 1 else 1 - p1)) + ll, pr1))
         tot = logsumexp([x[0] for x in h])
         return tot, math.fsum(math.exp(x[0] - tot) * x[1] for x in h)
 
