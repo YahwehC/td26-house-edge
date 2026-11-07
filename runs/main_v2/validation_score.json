@@ -1,0 +1,16 @@
+{
+  "R": 0.03621212061018453,
+  "err": {
+    "drift": 0.00524,
+    "shared_change": 0.0051,
+    "short_history": 0.01129,
+    "stable": 0.00564
+  },
+  "points": 57.90320225618319,
+  "ratios": {
+    "drift": 0.0276,
+    "shared_change": 0.0248,
+    "short_history": 0.0637,
+    "stable": 0.0288
+  }
+}

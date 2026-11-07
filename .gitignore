@@ -1,0 +1,15 @@
+# common
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+pip-*/
+.ds-logs/
+.env
+.env.*
+*.log
+.DS_Store
+
+# official kit (re-download per GUIDE.txt)
+kit/
+kit_dl/
