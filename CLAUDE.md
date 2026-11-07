@@ -117,6 +117,8 @@ Tried, no gain: others'-wins logit adjustment, additive lag effects, recency hal
   time-varying episode "heat" raises win probs when the episode paid out recently (opposite of a house-edge clawback).
 - Logit correction β·(ep_net_K − μ): 2-fold CV +0.097 (K=8), betas 0.196/0.189 across folds. Decayed weights, big-
   payout counts, wins-only versions all weaker. `r2.py` re-checks it by CV on the new kit and adopts only if ≥ +0.02.
+- Follow-ups (`eda/ev30.py`): residual-based heat (outcome − plug-in cell rate of mates) weaker (CV +0.05 at K=8)
+  than raw net payout ⇒ payout sizes carry the heat signal; heat does NOT shift the size distribution (z=−0.4).
 - Next idea if time: model the heat as a latent episode state (shared AR process) inside the Bayesian model instead
   of a post-hoc logit shift.
 
