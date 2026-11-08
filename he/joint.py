@@ -200,6 +200,10 @@ def lag_prior_for_pair(pair, cfg, marginal):
 
 def predict_joint(queries, vecs, cfg=None):
     cfg = dict(DEFAULT_CFG, **(cfg or {}))
+    machine_class = WinMachine
+    if cfg.get("sparse_win"):
+        from .sparse import SparseMachine
+        machine_class = SparseMachine
     base_lp = _pair_prior(cfg)
     marg = lag_prior_marginal(cfg)
     by_ep = defaultdict(list)
@@ -209,6 +213,11 @@ def predict_joint(queries, vecs, cfg=None):
     for ep, qs in sorted(by_ep.items()):
         qs = sorted(qs, key=lambda q: q["machine_id"])
         short = sum(len(q["seq"]) for q in qs) < 0.6 * sum(q["cutoff"] for q in qs)
+        if short and cfg.get("sparse_joint"):
+            from .sparse_joint import predict as predict_sparse_joint
+            for q in qs:
+                out[q["query_id"]] = predict_sparse_joint(q, vecs, cfg)
+            continue
         pri = cfg.get("model_prior_short") if short else None
         pri = pri or cfg["model_prior"]
         stable_only = pri.get("stable", 0) > 0 and not any(pri.get(k, 0) > 0 for k in ("drift", "shared"))
@@ -219,7 +228,7 @@ def predict_joint(queries, vecs, cfg=None):
             lp = {p: base_lp[p] + pp[p][0] for p in base_lp}
             z = logsumexp(list(lp.values()))
             per_pair.append((se, pp))
-            ms.append(WinMachine(q, cfg, {p: v - z for p, v in lp.items()}, stable_only=stable_only))
+            ms.append(machine_class(q, cfg, {p: v - z for p, v in lp.items()}, stable_only=stable_only))
         ws, diag = episode_posterior_joint(ms, cfg)
         for j, (q, w) in enumerate(zip(qs, ws)):
             w = min(max(w, 1e-6), 1 - 1e-6)

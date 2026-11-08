@@ -177,3 +177,14 @@ Tried, no gain: others'-wins logit adjustment, additive lag effects, recency hal
 See HANDOVER.md "Follow-up optimization": bit-identical inference ~27% faster on validation,
 verified `dist/main_v6_fast.zip`. Missing-size chain experiment is off by default; training
 improvement is below cluster uncertainty. Do not describe this as a score improvement.
+
+## Score-focused follow-up (Codex)
+main_v7 adds sparse-history hidden-win marginalization: validation 58.22751 -> 58.24592,
+short error about -2.6%, other conditions unchanged. Train pseudo-short Brier improves
+0.000680 (episode-clustered SE 0.000408). See HANDOVER.md for assumptions and rejected
+cross-fitted prior/size-hyperparameter experiments. main_v7 CSV/ZIP verified on Python
+3.12/3.13; packaged train refit identical. No submission made.
+
+main_v8 supersedes v7: joint hidden win/size inference, validation 58.270735797
+(+0.04322427 vs v6), short error -6.1%. Frozen train Brier delta -0.00089045,
+cluster SE 0.00042854. Standard-library port matches NumPy pilot; see HANDOVER.md.

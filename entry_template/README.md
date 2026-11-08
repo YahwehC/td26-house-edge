@@ -8,7 +8,8 @@ Reads `/data/test/{queries,history}.csv` and the bundled `params.json`; writes o
 
 ## Environment
 - Python 3.13 (official `python` image), **standard library only** - no third-party dependencies.
-- Fully deterministic: no random numbers, no seeds, no network. Runtime ~10 s on one core.
+- Fully deterministic: no random numbers, no seeds, no network. Sparse joint inference takes
+  a few minutes on one core, within the official 30-minute runtime limit.
 
 ## Model
 Structured Bayesian forecaster (`he/`):
@@ -18,6 +19,11 @@ Structured Bayesian forecaster (`he/`):
   shared change (all machines flip at a common tick); lag pair and flip tick are marginalised exactly.
 - Payout size given a win: two size vectors per machine type; the active one is
   (payout at lag L >= 2) XOR sign, with L coupled to the win pair; posterior-mixed.
+- When `cfg.sparse_joint` is enabled, short histories use a joint hidden-state forward
+  algorithm over win bits and big-payout bits. It uses the dominant learned size lag per
+  pair, posterior-mean cell rates, and averages orientation/sign and constant-size hypotheses.
+  This retains observations whose required lag values are missing. Dense histories use
+  the original episode model. `cfg.sparse_win` enables the simpler win-only variant.
 - Insurance blend (`he/fallback.py`): a generic Bayesian context model (any boolean function of up to two
   win lags, optional single change point; size given win conditioned on one big-payout lag), averaged over
   contexts with empirical-Bayes priors. Final forecast = w * main + (1 - w) * fallback, with w

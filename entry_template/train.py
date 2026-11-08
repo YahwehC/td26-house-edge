@@ -33,6 +33,12 @@ def main(argv=None):
     data = Path(a.data)
     if w > 0:
         params = fit_params(data, fit_splits=("train", "validation"))
+        if (HERE / "params.json").exists():
+            bundled_cfg = load_params(HERE / "params.json").get("cfg", {})
+            if bundled_cfg.get("sparse_win"):
+                params["cfg"]["sparse_win"] = True
+            if bundled_cfg.get("sparse_joint"):
+                params["cfg"]["sparse_joint"] = True
     else:
         params = {"params_version": 1}
     if w < 1:

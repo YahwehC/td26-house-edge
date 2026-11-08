@@ -117,3 +117,80 @@ Env: `.venv` (Python 3.12, stdlib only needed); results are identical on 3.13.
   independent cross-fit, so these are exploratory training diagnostics, not OOS gains.
 - Reproduce: run `eda/ev42.py`, `eda/ev54.py`, `eda/test_size_chain.py`, `eda/check_fast.py`.
   Summary results are `eda/ev54_train.json` and `eda/check_fast_result.json`.
+
+## Score-focused follow-up: main_v7 (Nov 7)
+
+**Current recommendation: `runs/main_v7/submission.csv` + `dist/main_v7.zip`.**
+Same fitted parameters and 0.9/0.1 blend as main_v6, plus `cfg.sparse_win=true`.
+Validation score: 58.227511527 -> **58.245920527** (+0.018409).
+Short-history ratio: 0.0504 -> 0.0491; short-history error 0.00895 -> 0.00872
+(about 2.6% lower). Dense-history predictions are unchanged.
+
+The improvement is structural, not a validation parameter sweep. Old WinMachine discarded
+observed wins/losses when either required lag was missing. `he/sparse.py` integrates hidden
+win bits with a finite-state forward pass, retaining all old observations. Each pair and
+orientation keeps its Beta-binomial likelihood for fully observed contexts; a likelihood
+ratio adds missing-context evidence without double-counting. Cell rates are posterior-mean
+plug-ins, so this is approximate Bayesian inference despite an exact fixed-rate forward pass.
+Initial hidden bits use a stationary distribution (256 iterations, tolerance 1e-11).
+
+Frozen training diagnostic (`eda/ev56.py --full`): 6,000 pseudo-short queries, 30 original
+source episodes: Brier 0.349617826 -> 0.348937847; delta -0.000679979, episode-clustered
+SE 0.000407665, 18/30 improve. Then one validation comparison (`eda/ev56_validation.py`).
+No parameters were selected using validation targets. As with ev54, the frozen baseline
+priors include train+validation histories; this diagnostic is not fully cross-fitted.
+The independent validation check supports the direction, but the gain is small and is not
+proof of an improvement on private test data.
+
+Checks: `eda/test_sparse.py` matches independent exhaustive enumeration of hidden paths
+and the IID special case. `build_entry.py` reports zero prediction differences on Python
+3.12 and 3.13. Packaged `train.py` reproduces params exactly, including the new flag.
+No external dependencies in the submission. `eda/build_v7.py` rebuilds the candidate.
+
+Rejected experiments (EDA only; SciPy is not packaged):
+- `eda/ev55.py`: marginal-likelihood cell priors, three folds by source episode. Training
+  delta -0.0000902 +/- SE 0.0001423. Single validation comparison worsens 58.23397 ->
+  58.22699 when both cell-prior fits use train histories. Not adopted.
+- `eda/ev57.py`: learn size noise/constant-regime/lag-leakage weights from training marginal
+  likelihood. Three-fold training Brier worsens by 0.0001154 (SE 0.0001331). Not adopted;
+  validation not inspected for this candidate.
+- New forward-model methodology uses the standard HMM recursion documented at
+  https://mc-stan.org/docs/2_28/stan-users-guide/hmms.html . No third-party code copied.
+
+## Stronger score candidate: main_v8
+
+**Supersedes v7: `runs/main_v8/submission.csv` + `dist/main_v8.zip`.**
+The joint sparse-history model reaches **58.270735797** on the same validation set
+(v6 58.227511527, v7 58.245920527). Short-history error is 0.00840 vs 0.00895 for v6,
+about 6.1% lower; short ratio 0.0474 vs 0.0504. Other conditions are unchanged.
+
+`he/sparse_joint.py` tracks binary wins for the win-pair lags plus big-payout bits for
+the dominant learned size lag. Both missing wins and missing payout regimes are jointly
+integrated. All four (hi/lo orientation, size sign) hypotheses are averaged, retaining
+constant-size insurance. Posterior-mean cell-rate approximation remains; the tiny
+non-dominant size-lag prior mass is dropped in this explicit candidate. There are no new
+validation-tuned numeric knobs. Opt-in flag: `cfg.sparse_joint=true`.
+
+Training comparison (`eda/ev58.py --full`): frozen candidate on 6,000 pseudo-short queries,
+Brier 0.349617826 -> 0.348727375, delta -0.000890452, cluster SE 0.000428541, 20/30 source
+episodes improve. Then a single validation check (`eda/ev58_validation.py`). Same caveat
+about frozen baseline priors as ev56. No guarantee of private-test gain is implied.
+
+The NumPy experiment is `hx/joint_sparse.py`; production was ported to pure stdlib.
+`eda/test_sparse_joint.py` compares both on eight real queries (max difference about
+2.1e-15), checks normalization, and verifies an independently calculated IID categorical
+case. `eda/build_v8.py` rebuilds params/predictions from the original main_v6 params.
+
+Final extra comparison: `eda/ev59.py --full` uses 3x3 Gauss-Jacobi quadrature to integrate
+cell-rate uncertainty as well as hidden win bits. Training delta -0.00060359 (SE
+0.00045692) is weaker than plug-in sparse wins and joint sparse inference, so it was
+not promoted to a validation check. Best tested candidate remains main_v8.
+The joint production recursion also passes independent exhaustive coupled hidden-path
+enumeration for both size signs (not merely equivalence to the NumPy implementation).
+Final v8 delivery checks: all 1,536 test rows pass our CSV checker; bundled `train.py`
+refits parameters exactly. Production validation matches the NumPy pilot score exactly.
+The package README documents the higher runtime of joint inference; the official limit
+is 30 minutes / two CPU cores / 16 GiB RAM (`kit/RULES.md`).
+Python 3.13 packaged prediction: VERIFIED, maximum difference 0.000e+00 versus the
+Python 3.12 generated CSV. The final ZIP's README was refreshed afterward; every executable
+byte was checked unchanged, all packaged source files match the workspace, and ZIP CRCs pass.

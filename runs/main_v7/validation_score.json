@@ -1,0 +1,16 @@
+{
+  "points": 58.24592052675521,
+  "R": 0.03011506140484226,
+  "ratios": {
+    "drift": 0.0235,
+    "shared_change": 0.0236,
+    "short_history": 0.0491,
+    "stable": 0.0242
+  },
+  "err": {
+    "drift": 0.00446,
+    "shared_change": 0.00486,
+    "short_history": 0.00872,
+    "stable": 0.00475
+  }
+}
