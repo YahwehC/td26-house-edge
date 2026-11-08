@@ -11,7 +11,13 @@ Output is a he/corr.py-compatible dict {"names", "beta", "mu", "z"} applied at t
 import math
 from collections import defaultdict
 
-PAIRS = ((1, 3), (2, 5), (4, 7))
+PAIRS = ((1, 3), (2, 5), (4, 7))  # main-round default; pass the kit's fitted pairs (pairs_from_cfg) instead
+
+
+def pairs_from_cfg(cfg):
+    """Lag pairs with prior mass in a fitted cfg (cfg["pairs"] = {"a,b": weight}); falls back to PAIRS."""
+    ps = sorted(tuple(int(x) for x in k.split(",")) for k, v in ((cfg or {}).get("pairs") or {}).items() if v > 0)
+    return tuple(ps) or PAIRS
 CANDIDATES = ["oth_win_%d" % k for k in range(1, 9)] + ["oth_net_8"]
 
 
@@ -117,12 +123,13 @@ def _inv_diag(A):
     return [_solve(A, [float(i == j) for j in range(n)])[i] for i in range(n)]
 
 
-def fit_coupling(query_lists, condition_maps=None, z_keep=3.0, log=print):
-    """Fit all candidates, keep |z| >= z_keep, refit the kept set. Returns corr dict or None if nothing kept."""
+def fit_coupling(query_lists, condition_maps=None, z_keep=3.0, log=print, pairs=PAIRS):
+    """Fit all candidates, keep |z| >= z_keep, refit the kept set. Returns corr dict or None if nothing kept.
+    pairs: candidate XNOR lag pairs for the per-machine offset (use the kit's fitted pairs)."""
     X, Y, O = [], [], []
     for k, qs in enumerate(query_lists):
         cm = (condition_maps or [None] * len(query_lists))[k]
-        x, y, o = tick_rows(qs, cm)
+        x, y, o = tick_rows(qs, cm, pairs=pairs)
         X += x
         Y += y
         O += o
@@ -131,7 +138,7 @@ def fit_coupling(query_lists, condition_maps=None, z_keep=3.0, log=print):
         return None
     idx = list(range(len(CANDIDATES)))
     b, se, mu = _logreg(X, Y, O, idx)
-    log(f"[coupling] {len(X)} ticks; all candidates: " + ", ".join(
+    log(f"[coupling] pairs {list(pairs)}; {len(X)} ticks; all candidates: " + ", ".join(
         f"{CANDIDATES[i]} {b[j + 1]:+.3f}(z{b[j + 1] / se[j + 1]:+.1f})" for j, i in enumerate(idx)))
     keep = [i for j, i in enumerate(idx) if abs(b[j + 1] / se[j + 1]) >= z_keep]
     if not keep:

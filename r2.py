@@ -21,7 +21,7 @@ sys.path.insert(0, str(ROOT))
 from check_csv import check
 from he.api import PARAMS_VERSION, fit_params, predict_queries, predict_split, save_params, write_submission
 from he.corr import apply_corr
-from he.coupling import fit_coupling
+from he.coupling import fit_coupling, pairs_from_cfg
 from he.fallback import fit_fallback, predict_fallback
 from he.model import load_split, official_score
 
@@ -107,7 +107,7 @@ def compact_votes(params):
     return dict(top), compact
 
 
-def choose_logit_corr(val_q, val_extra, params, max_points, train_q=None, train_extra=None, min_gain=0.02):
+def choose_logit_corr(val_q, val_extra, params, max_points, train_q=None, train_extra=None, min_gain=0.02, cfg=None):
     """Cross-machine coupling (he/coupling.py): fit on TRAIN ticks, check out-of-sample on validation targets;
     if it gains >= min_gain, refit on train+validation ticks (histories only) and return it, else None."""
     if not val_extra.get("targets") or train_q is None:
@@ -117,7 +117,8 @@ def choose_logit_corr(val_q, val_extra, params, max_points, train_q=None, train_
     base_params = {k: v for k, v in params.items() if k != "logit_corr"}
     pred = predict_queries(val_q, base_params)
     base = official_score(pred, val_extra, val_q, max_points)
-    c_tr = fit_coupling([train_q], [cm(train_extra)])
+    pairs = pairs_from_cfg(cfg or params.get("cfg"))  # the kit's fitted lag pairs (main model)
+    c_tr = fit_coupling([train_q], [cm(train_extra)], pairs=pairs)
     if not c_tr:
         print("[corr] nothing significant on train ticks - not adopted")
         return None
@@ -128,7 +129,7 @@ def choose_logit_corr(val_q, val_extra, params, max_points, train_q=None, train_
     if gain < min_gain:
         print("[corr] not adopted")
         return None
-    c = fit_coupling([train_q, val_q], [cm(train_extra), cm(val_extra)])
+    c = fit_coupling([train_q, val_q], [cm(train_extra), cm(val_extra)], pairs=pairs)
     print(f"[corr] adopted (refit on train+validation ticks): {c and c['names']}")
     return c
 
@@ -305,7 +306,8 @@ def main(argv=None):
         params["fallback"] = fb_full
     # step 7b: episode-heat logit correction, adopted only if 2-fold CV (by episode) on validation gains
     try:
-        corr = choose_logit_corr(val_q, val_extra, params, args.max_points, train_q, splits["train"][1])
+        corr = choose_logit_corr(val_q, val_extra, params, args.max_points, train_q, splits["train"][1],
+                                 cfg=(main_full or {}).get("cfg") if isinstance(main_full, dict) else None)
         if corr:
             params["logit_corr"] = corr
     except Exception:

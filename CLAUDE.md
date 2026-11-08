@@ -135,6 +135,24 @@ Tried, no gain: others'-wins logit adjustment, additive lag effects, recency hal
 - Homogeneous on the logit scale: hi cells β=+0.093, lo cells +0.100 (`eda/ev39.py`) ⇒ logit-additive form is right.
 - Ideas left: coupling inside the cell estimation (offset per tick in the Beta-Binomial), static episode offset.
 
+## Sat 18:20-19:30 sweep (`eda/ev40-53.py`, `sim/`) — main model is at its information limit
+- Gap anatomy (main_v6 val ratios): drift .0235, shared .0236, short .0504, stable .0242; oracle win → .0012/.0029/
+  .017/.0009. Drift/shared ≈ stable floor (per-tick noise); the only excess is short_history (win +.011, size +.016).
+- Pseudo-short episodes cut from train histories (40 recent + 24 sampled, Brier vs realised outcome, 6000 queries,
+  `eda/ev42-43.py`): kappa_scale 0.5-2 / blend w / coupling on-off all |Δ| ≤ 0.0003 → nothing to tune for short.
+- Calibration: prob-space slope 1.01-1.02 every condition (logit slope 1.09 is just Jensen); temperature 1.03 +0.015.
+- Prob-space residual screen (45 features, episode-clustered SE): max |z| 3.3 → no missing mechanism.
+- Coupling structure: same for every relative machine index d and for both signals; per-winner effect slightly larger
+  for jackpot winners (payout-size term z 2.4, negligible). Own lags beyond the cell: (2,5) own_4 replicates (z 2.7/3.2),
+  others don't. Lag pair and size sign s are NOT shared within an episode (same-pair .323 vs .334 chance; same-s .507
+  vs .501); s does not flip at change points (early/late agreement .93-.95). Coupling scale 1.0 is optimal on main val.
+- **Round-2 fix**: `he/coupling.py` hard-coded the main pairs (1,3),(2,5),(4,7) for its per-machine offset → now uses the
+  kit's fitted pairs (`pairs_from_cfg`, passed by `r2.py` and `train.py`; identical on main).
+- **Round-2 stress test** (`sim/sim.py`, synthetic kit from the recovered generator with changed rules):
+  kit_a pairs (2,3),(1,6),(5,8) + coupling lag 2 → r2.py finds the pairs, oth_win_2 (z 10), adopts (+0.07), build OK;
+  kit_b pairs (3,8),(6,7),(1,4) + size lag = second + coupling lag 1 → lag_rule "second", oth_win_1, w*=0.9, build OK;
+  packaged `train.py` re-fit of kit_b params bit-identical.
+
 ## Status
 - [x] **Main entry ready**: `runs/main_v2/submission.csv` + `dist/main_v2.zip` (VERIFIED rerun, identical on Py3.13).
 - [x] main_v3 (blend, +0.06 val): `runs/main_v3/submission.csv` + `dist/main_v3.zip` (VERIFIED, identical on Py3.13).

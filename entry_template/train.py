@@ -41,11 +41,11 @@ def main(argv=None):
     bundled_corr = load_params(HERE / "params.json").get("logit_corr") if (HERE / "params.json").exists() else True
     if bundled_corr:
         # cross-machine coupling: logistic regression on train+validation per-tick outcomes (he/coupling.py)
-        from he.coupling import fit_coupling
+        from he.coupling import fit_coupling, pairs_from_cfg
         tq, tex = load_split(data, "train")
         vq, vex = load_split(data, "validation")
         cm = lambda ex: {r["query_id"]: r["condition"] for r in ex.get("conditions", [])}
-        c = fit_coupling([tq, vq], [cm(tex), cm(vex)], log=lambda *x: None)
+        c = fit_coupling([tq, vq], [cm(tex), cm(vex)], log=lambda *x: None, pairs=pairs_from_cfg(params.get("cfg")))
         if c:
             params["logit_corr"] = c
     save_params(Path(a.out), params)
