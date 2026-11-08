@@ -19,7 +19,7 @@ def predict(queries,params,config):
     offsets = estimate_offsets(rows, config)
     for r in rows:
         i=types.index(r['type']);eta=cf[2*i+r['high']]+cf[6]*r['signal']+cf[7+i]*(r['regime']-.5)+cf[10]*(r['peer']-3.5)
-        eta += offsets.get(r['machine'], 0.)
+        eta += offsets.get((r['episode'],r['machine']), 0.)
         if config.get('soft_weather'):
             high = r['high_probability']
             probabilities = []
@@ -27,7 +27,7 @@ def predict(queries,params,config):
                 probability = 0.
                 for state, ps in ((0, 1-high), (1, high)):
                     for regime, pr in ((0, 1-r['regime']), (1, r['regime'])):
-                        z = cf[2*i+state]+cf[6]*r['signal']+cf[7+i]*(regime-.5)+cf[10]*(r['peer']-3.5)+weather+offsets.get(r['machine'],0.)
+                        z = cf[2*i+state]+cf[6]*r['signal']+cf[7+i]*(regime-.5)+cf[10]*(r['peer']-3.5)+weather+offsets.get((r['episode'],r['machine']),0.)
                         probability += ps*pr/(1+math.exp(-z))
                 probabilities.append(probability)
             eta = probabilities
@@ -49,7 +49,7 @@ def predict(queries,params,config):
             from .sparse_glm import predict as sparse_predict
             for q in qs:
                 peers={t:peer_winners(qs,q,t-int(cfg.get('peer_lag',3)),cfg.get('marginalize_missing_peers',False)) for t in range(q['cutoff']+1)}
-                result[q['query_id']]=sparse_predict(q,peers,params,config,hot.get(ep,.5))
+                result[q['query_id']]=sparse_predict(q,peers,params,config,hot.get(ep,.5),offsets.get((ep,q['machine_id']),0.))
             continue
         for q in qs:
             seq=q['seq'];cut=q['cutoff'];m=Machine();m.q=q;m.taus=[] if short else list(range(cfg['tau_lo'],cut+1));m.pairs=[];m.pair_logprior={};m.lml_stable={};m.lml_tau={};m.pred_stable={};m.pred_tau={};reg={}
@@ -83,7 +83,7 @@ def predict(queries,params,config):
                                 cats={delay:value[0] for delay,value in zip(lagset,combo)};weight=math.prod(value[1] for value in combo)
                                 state=int((cats[a]>0)==(cats[b]>0))^orientation^flip;r=int(cats[lag]==2)^sign
                                 eta=cf[2*typeidx+state]+cf[6]*q['signal']+cf[7+typeidx]*(r-.5)+cf[10]*(peers[t]-3.5)
-                                eta += offsets.get(q['machine_id'], 0.)
+                                eta += offsets.get((ep,q['machine_id']), 0.)
                                 pw=(1-weather)/(1+math.exp(-(eta-scale)))+weather/(1+math.exp(-(eta+scale)))
                                 output[0]+=weight*(1-pw)
                                 for k in range(4):output[k+1]+=weight*pw*V[r][k]

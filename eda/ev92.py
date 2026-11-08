@@ -28,7 +28,7 @@ for ep,times in by.items():
                 if r['machine']==mid:
                     if tick>=.6*r['cutoff']:
                         for name,offsets in [('baseline',base),('smoothed',alternative)]:
-                            d=offsets[mid];p=(1-hot)*sig(eta+d-scale)+hot*sig(eta+d+scale);loss[name][ep].append((p-r['y'])**2)
+                            d=offsets[ep,mid];p=(1-hot)*sig(eta+d-scale)+hot*sig(eta+d+scale);loss[name][ep].append((p-r['y'])**2)
                     continue
                 for j,shift in enumerate((-scale,scale)):
                     z=eta+shift;ll[j]+=r['y']*z-max(z,0)-math.log1p(math.exp(-abs(z)))

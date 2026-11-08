@@ -122,7 +122,7 @@
   ]
  },
  "global_state_fit": {
-  "blend": "Pure main model; all three original-episode training folds selected weight 1.0 in eda/ev85.py",
+  "blend": "Pure main model; episode-isolated train folds select 1.0, 0.99920035, 1.0; full fit 1.0 (eda/ev94.py supersedes ev85)",
   "evaluation": "3-fold episode-held-out; eda/ev68_crossfit.json",
   "history_initialization": "train outcomes; eda/ev64.py",
   "machine_variance": "0.04; chronological train-history comparison in eda/ev77.py",

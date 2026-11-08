@@ -41,6 +41,8 @@ def main(argv=None):
                 params["cfg"]["sparse_joint"] = True
             if bundled_cfg.get("exact_sparse_glm"):
                 params["cfg"]["exact_sparse_glm"] = True
+            if bundled_cfg.get("marginalize_missing_peers"):
+                params["cfg"]["marginalize_missing_peers"] = True
             # Preserve the offline-fitted global-state checkpoint. This helper
             # refits the original priors, not the optional EM checkpoint.
             checkpoint = load_params(HERE / "params.json").get("global_state")

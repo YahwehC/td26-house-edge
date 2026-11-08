@@ -1,0 +1,10 @@
+{
+  "gain": 0.005963165576218898,
+  "bootstrap_95": [
+    -0.05117935387872308,
+    0.06152612178089356
+  ],
+  "short_episodes_improved": 15,
+  "short_episodes": 24,
+  "caveat": "Repeated public-set development; descriptive bootstrap is not an independent generalization guarantee."
+}

@@ -5,7 +5,7 @@ from .model import SIZE_IDX, _pair_prior, DEFAULT_CFG, logsumexp
 from .joint import lag_prior_marginal, lag_prior_for_pair
 
 
-def predict(q,peers,params,config,hot):
+def predict(q,peers,params,config,hot,offset=0.):
     cfg=dict(DEFAULT_CFG,**params['cfg']);pri=_pair_prior(cfg);marg=lag_prior_marginal(cfg);cf=config['coef'];i=config['types'].index(q['machine_type']);scale=config['scale']
     V=params['size_vectors'][q['machine_type']];eps=cfg['size_eps'];V=[[(1-eps)*V[r][k]+eps*V[1-r][k] for k in range(4)] for r in (0,1)]
     seq=q['seq'];cut=q['cutoff'];logs=[];predictions=[]
@@ -18,7 +18,7 @@ def predict(q,peers,params,config,hot):
                     rates=[[0.,0.],[0.,0.]]
                     for z in (0,1):
                         for r in (0,1):
-                            eta=cf[2*i+(z^orientation)]+cf[6]*q['signal']+cf[7+i]*(r-.5)+cf[10]*(peer-3.5)
+                            eta=cf[2*i+(z^orientation)]+cf[6]*q['signal']+cf[7+i]*(r-.5)+cf[10]*(peer-3.5)+offset
                             rates[z][r]=(1-weather)/(1+math.exp(-(eta-scale)))+weather/(1+math.exp(-(eta+scale)))
                     return [rates[z][r^sign] for z,r in zip(cells,regimes)]
                 sizes=[V[r^sign] for r in regimes]

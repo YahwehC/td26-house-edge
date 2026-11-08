@@ -9,7 +9,7 @@ class OffsetTest(unittest.TestCase):
     def test_constant_rate_map(self):
         config={'types':['x'],'coef':[0.]*11,'scale':0.,'hazard':.02,'machine_variance':.04}
         rows=[{'episode':'e','machine':'m','type':'x','high':0,'signal':0,'regime':0.,'peer':3.5,'tick':t,'y':int(t<80)} for t in range(100)]
-        value=estimate_offsets(rows,config)['m'];prob=1/(1+math.exp(-value))
+        value=estimate_offsets(rows,config)['e','m'];prob=1/(1+math.exp(-value))
         self.assertAlmostEqual(80-100*prob-value/.04,0.,places=9)
         self.assertGreater(value,0.)
         self.assertLess(value,math.log(4))
@@ -34,10 +34,23 @@ class OffsetTest(unittest.TestCase):
                 probability*=p if y else 1-p
             mass+=probability
             for t,state in enumerate(states):hot[t]+=probability*state
-        value=estimate_offsets(rows,config)['m'];score=-value/.04
+        value=estimate_offsets(rows,config)['e','m'];score=-value/.04
         p0=1/(1+math.exp(-(value-.4)));p1=1/(1+math.exp(-(value+.4)))
         for t,y in outcomes['m'].items():
             h=hot[t]/mass;p=(1-h)*p0+h*p1;derivative=(1-h)*p0*(1-p0)+h*p1*(1-p1)
             score+=(y-p)*derivative/(p*(1-p))
         self.assertAlmostEqual(score,0.,places=9)
+    def test_repeated_machine_id_is_episode_local(self):
+        config={'types':['x'],'coef':[0.]*11,'scale':.4,'hazard':.02,'machine_variance':.04}
+        first=[{'episode':'first','machine':'m','type':'x','high':0,'signal':0,
+                'regime':0.,'peer':3.5,'tick':t,'y':1} for t in range(20)]
+        second=[dict(r,episode='second',y=0) for r in first]
+        for smooth in (False,True):
+            candidate=dict(config,offset_smoothing=smooth)
+            together=estimate_offsets(first+second,candidate)
+            separate=estimate_offsets(first,candidate)
+            separate.update(estimate_offsets(second,candidate))
+            self.assertEqual(together,separate)
+            self.assertGreater(together['first','m'],0)
+            self.assertLess(together['second','m'],0)
 if __name__=='__main__':unittest.main()

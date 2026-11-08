@@ -15,7 +15,7 @@ eta=[];y=[];indices=[]
 for r in rows:cuts[eid[r['episode']]]=r['cutoff']
 T=int(cuts.max());N=len(eps)
 for r in rows:
-    i=cfg['types'].index(r['type']);cf=cfg['coef'];eta.append(cf[2*i+r['high']]+cf[6]*r['signal']+cf[7+i]*(r['regime']-.5)+cf[10]*(r['peer']-3.5)+off.get(r['machine'],0.))
+    i=cfg['types'].index(r['type']);cf=cfg['coef'];eta.append(cf[2*i+r['high']]+cf[6]*r['signal']+cf[7+i]*(r['regime']-.5)+cf[10]*(r['peer']-3.5)+off.get((r['episode'],r['machine']),0.))
     y.append(r['y']);indices.append(eid[r['episode']]*T+r['tick'])
 eta=np.array(eta);y=np.array(y);indices=np.array(indices);grid=np.linspace(-3.5,3.5,21);boundaries=(grid[:-1]+grid[1:])/2;boundaries=np.r_[-np.inf,boundaries,np.inf]
 initial_prior=np.diff(ndtr(boundaries))

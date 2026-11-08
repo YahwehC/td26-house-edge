@@ -1,6 +1,7 @@
 """Persistent machine logit offsets with a zero-centered Gaussian prior.
 Default weather covariates use other machines and strictly earlier ticks.
 Optional offset_smoothing uses all supplied peer history, still excluding self.
+Offsets are keyed by (episode, machine); a local machine ID can recur in another episode.
 """
 import math
 from collections import defaultdict
@@ -18,7 +19,7 @@ def estimate_offsets(rows, config):
         by[r['episode']][r['tick']].append((r['machine'],eta,r['y']))
     sigmoid=lambda x:1/(1+math.exp(-max(-700,min(700,x))))
     records=defaultdict(list)
-    for times in by.values():
+    for episode,times in by.items():
         machines={mid for observations in times.values() for mid,_,_ in observations}
         for mid in sorted(machines):
             if config.get('offset_smoothing'):
@@ -29,7 +30,7 @@ def estimate_offsets(rows, config):
                 for tick,observations in sorted(times.items()):
                     for machine,eta,y in observations:
                         if machine == mid:
-                            records[mid].append((eta,history[tick],y))
+                            records[episode,mid].append((eta,history[tick],y))
                 continue
             hot=.5;last=None
             for tick,observations in sorted(times.items()):
@@ -38,7 +39,7 @@ def estimate_offsets(rows, config):
                 ll=[0.,0.]
                 for machine,eta,y in observations:
                     if machine==mid:
-                        records[mid].append((eta,hot,y))
+                        records[episode,mid].append((eta,hot,y))
                         continue
                     for j,shift in enumerate((-scale,scale)):
                         z=eta+shift
@@ -46,7 +47,7 @@ def estimate_offsets(rows, config):
                 z=math.log(max(hot,1e-15)/max(1-hot,1e-15))+ll[1]-ll[0]
                 hot=sigmoid(z);last=tick
     offsets={}
-    for mid,observations in records.items():
+    for key,observations in records.items():
         offset=0.
         for _ in range(8):
             score=-offset/variance;information=1/variance
@@ -58,5 +59,5 @@ def estimate_offsets(rows, config):
                 score+=(y-probability)*derivative/denom
                 information+=derivative*derivative/denom
             offset+=score/information
-        offsets[mid]=offset
+        offsets[key]=offset
     return offsets

@@ -1,5 +1,11 @@
 # House Edge - team pipeline
 
+Latest main-round candidate: **main_v13**, 59.123069 on episode-held-out calibration,
+versus main_v12 59.117106. Use `runs/main_v13/submission.csv` with `dist/main_v13.zip`.
+The ZIP reproduces all 1,536 test predictions exactly under Python 3.13 using only
+the standard library. The small public-score gain does not establish a hidden-test
+gain; retain v12. See `HANDOVER.md` for the experiment audit and current findings.
+
 ## Run
 
 ```sh
