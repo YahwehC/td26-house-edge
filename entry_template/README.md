@@ -1,5 +1,12 @@
 # House Edge submission
 
+For adaptation entry `r2_v2`, the lag pairs and size lags are fitted to the adaptation
+kit. Global type/signal/size/peer logits pool released main and adaptation targets;
+the reported adaptation score uses three folds that exclude the predicted adaptation
+episode's targets. The final test checkpoint refits on all released targets.
+Persistent offset variance 0.04 and main-model weight 1.0 were selected on adaptation
+training histories. Exact sparse inference is not enabled in this entry.
+
 ## Recreate the forecast
 ```sh
 python predict.py --data /data --out /output/submission.csv

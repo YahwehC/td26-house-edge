@@ -1,0 +1,15 @@
+{
+  "gain": 0.04520653403602992,
+  "bootstrap_95": [
+    0.027575664671736888,
+    0.06441774172149195
+  ],
+  "fold_gains": [
+    0.06524999021173272,
+    0.0427855536483257,
+    0.01830381616159471
+  ],
+  "improved_episodes": 76,
+  "episodes": 96,
+  "caveat": "Public development and fixed pre-existing size vectors; descriptive bootstrap is not an independent hidden-test guarantee."
+}

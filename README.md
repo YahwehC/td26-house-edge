@@ -1,5 +1,10 @@
 # House Edge - team pipeline
 
+Latest **adaptation** candidate: **r2_v2, 19.78505864 / 20** with episode-held-out
+global calibration, versus r2_v1 19.73985211. Submit `runs/r2_v2/submission.csv` and
+`dist/r2_v2.zip` together. All 1,536 test probabilities reproduce exactly under
+Python 3.13. See `eda/R2_V2.md` for fitting provenance, comparisons, and limitations.
+
 Latest main-round candidate: **main_v13**, 59.123069 on episode-held-out calibration,
 versus main_v12 59.117106. Use `runs/main_v13/submission.csv` with `dist/main_v13.zip`.
 The ZIP reproduces all 1,536 test predictions exactly under Python 3.13 using only

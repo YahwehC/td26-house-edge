@@ -35,6 +35,8 @@ def main(argv=None):
         params = fit_params(data, fit_splits=("train", "validation"))
         if (HERE / "params.json").exists():
             bundled_cfg = load_params(HERE / "params.json").get("cfg", {})
+            if "peer_lag" in bundled_cfg:
+                params["cfg"]["peer_lag"] = bundled_cfg["peer_lag"]
             if bundled_cfg.get("sparse_win"):
                 params["cfg"]["sparse_win"] = True
             if bundled_cfg.get("sparse_joint"):

@@ -1,0 +1,21 @@
+{
+  "score": {
+    "points": 19.783347543929224,
+    "R": 0.0109512536030466,
+    "ratios": {
+      "drift": 0.0059,
+      "shared_change": 0.0077,
+      "short_history": 0.0182,
+      "stable": 0.0119
+    },
+    "err": {
+      "drift": 0.0012,
+      "shared_change": 0.00153,
+      "short_history": 0.00319,
+      "stable": 0.00217
+    }
+  },
+  "main_weight": 1.0,
+  "machine_variance": 0.04,
+  "selection": "offset variance and weight selected on adaptation train histories; validation logits fit excluding held episode"
+}

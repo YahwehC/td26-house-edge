@@ -1,5 +1,11 @@
 # House Edge — handover for another optimizer (Sat Nov 7, ~19:00 CT)
 
+> ADAPTATION UPDATE: **r2_v2 = 19.78505864 / 20**, up from r2_v1 19.73985211.
+> Matched files: `runs/r2_v2/submission.csv` and `dist/r2_v2.zip`.
+> Uses the new kit `kit2_x/public`; details and reproduction in `eda/R2_V2.md`.
+> The current kit rules specify main 80 / adaptation 20. Historical main scores below
+> remain on their original 60-point reporting scale, not the official 80-point scale.
+
 > UPDATE: current best is **main_v13 (59.123069 episode-held-out calibration)**.
 > See the final section. Earlier claims of an irreducible 58.2-58.3 ceiling are retracted.
 > New submission pair: `runs/main_v13/submission.csv` and `dist/main_v13.zip`.
