@@ -167,6 +167,7 @@ Tried, no gain: others'-wins logit adjustment, additive lag effects, recency hal
 ## Round-2 plan (Sat 9 PM → Sun 11 AM)
 1. Download new kit → `kit2/` (separate folder; check `public/metadata.json` round = adaptation).
 2. `.venv\Scripts\python.exe r2.py --data kit2\public --name r2_v0` (max points default 40) → read the weight table
+   Runtime: ~2 min without sparse_joint; with it (adopted only if validation does not drop and projected test predict ≤ 900 s) up to ~35 min (sim kit_b test: +0.08, total 2151 s, zip predict 725 s). Start it right at 9 PM in the background.
    (main vs fallback per condition) → user uploads `runs\r2_v0\submission.csv` + `dist\r2_v0.zip` as safe first entry.
    If fallback >> main, the rule family changed → spend the time on step 3.
 3. Check what changed ("which temporal relationships recur"): `params.json` votes (pairs, lags, lag_rule), episode

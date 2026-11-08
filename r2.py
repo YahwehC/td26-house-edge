@@ -233,6 +233,32 @@ def main(argv=None):
             print("[main] validation prediction FAILED; continuing with the fallback model only")
             traceback.print_exc()
             main_pred = None
+    # step 5a: sparse-history joint inference (he/sparse_joint.py, short episodes only); adopted if it does not hurt
+    use_sparse_joint = False
+    if main_pred is not None:
+        try:
+            sp_params = dict(main_params, cfg=dict(main_params["cfg"], sparse_joint=True))
+            t_sp = time.perf_counter()
+            _, _, sp_pred = predict_split(data, "validation", sp_params)
+            t_sp = time.perf_counter() - t_sp
+            # test has ~2x the validation episodes; official rerun limit is 30 min -> keep >= 2x margin
+            n_ratio = max(1.0, len(splits["test"][0]) / max(1, len(val_q))) if "test" in splits else 2.0
+            proj = t_sp * n_ratio
+            print(f"[sparse_joint] validation prediction {t_sp:.0f}s -> projected test predict ~{proj:.0f}s")
+            s0 = official_score(main_pred, val_extra, val_q, args.max_points)
+            s1 = official_score(sp_pred, val_extra, val_q, args.max_points)
+            print(f"[sparse_joint] main-only validation {s0['points']:.3f} -> {s1['points']:.3f} "
+                  f"(short {s0['ratios'].get('short_history')} -> {s1['ratios'].get('short_history')})")
+            if proj > 900:
+                print("[sparse_joint] not adopted: projected test runtime > 900 s (rerun limit 30 min)")
+            elif s1["points"] >= s0["points"] - 1e-9:
+                use_sparse_joint, main_params, main_pred = True, sp_params, sp_pred
+                print("[sparse_joint] adopted")
+            else:
+                print("[sparse_joint] not adopted")
+        except Exception:
+            print("!!! sparse_joint check FAILED; continuing without it")
+            traceback.print_exc()
     fb_pred = predict_fallback(val_q, fb_params)
     print(f"[fallback] validation predictions: {len(fb_pred)} rows")
 
@@ -277,6 +303,8 @@ def main(argv=None):
     else:
         try:
             main_full = fit_params(data, fit_splits=("train", "validation"))
+            if use_sparse_joint:
+                main_full["cfg"]["sparse_joint"] = True
             main_refit_ok = True
             print("[refit] main fitted on train+validation")
         except Exception:
