@@ -323,3 +323,19 @@ under Python 3.13 reproduces the Python 3.12 CSV with maximum absolute differenc
 Independent drift-path test confirms the optional ramp does not affect shared-change
 likelihoods. Neither ramp, soft-weather, nor joint-weather experimental flags are enabled
 in main_v11. The only new enabled feature is machine_variance=0.04.
+
+## Continuing search after v11 (ev79-81)
+- Episode-specific weather amplitude/hazard mixtures (ev79), fitted on other original
+  episode folds, evaluated on last 40% of held train histories: amplitude-only mean
+  log-score gain +.0344, cluster SE .0372; amplitude+hazard -.00048, SE .0452. Neither
+  supports a reliable improvement; no validation sweep or production change.
+- Separate machine offsets for low/high states (ev80) worsen chronological held-out
+  training Brier vs a common offset: independent +.0000487 (SE .0000261), correlated
+  rho=.5 +.0000171 (SE .0000131). Keep the shared machine intercept.
+- Train-fitted global high-minus-low logit gaps are 4.7626/4.8289/4.7346 across the three
+  types. Testing a common gap as a structural constraint, removing two free coefficients,
+  with the same episode-held-out calibration protocol (`eda/ev81.py`).
+These chronological diagnostics use latent structure inferred from full training
+histories, as in ev77; they are component checks, not fully causal end-to-end forecasts.
+Common-gap result: 59.09533271 versus v11 59.09743855, so the constraint is not adopted.
+It remains a generator-structure clue, not a demonstrated score improvement.
