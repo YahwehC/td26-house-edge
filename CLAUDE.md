@@ -160,7 +160,8 @@ Tried, no gain: others'-wins logit adjustment, additive lag effects, recency hal
 - [x] main_v5 (58.20 CV, unstable): `runs/main_v5/` + `dist/main_v5.zip`.
 - [x] **main_v6 (58.20 out-of-sample)**: `runs/main_v6/submission.csv` + `dist/main_v6.zip` (VERIFIED, Py3.13 identical, train.py re-fit identical) ← upload this.
 - [x] Round-2 runner `r2.py` + fallback ready; dry-run on main kit: exit 0, 88 s.
-- [ ] User: register team (form) and upload main CSV + ZIP before Sat 9 PM CT.
+- [x] **Main round submitted by the user (~20:00 CT Nov 7)**; user did not say which version (main_v6 or main_v8 - same files are in `runs/` + `dist/`). Main is closed - no further main-round work.
+- [x] main_v8 (58.27 val, sparse-history joint inference for short episodes) checked: zip rerun identical, CSV OK, 69 s; only short rows change; OOS pseudo-short on validation histories delta -0.00037 (z -1.1). `r2.py` now tests `sparse_joint` on the new validation and adopts it if it does not hurt.
 - [ ] Round 2 at 9 PM (plan below).
 
 ## Round-2 plan (Sat 9 PM → Sun 11 AM)
