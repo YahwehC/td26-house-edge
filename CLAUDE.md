@@ -190,3 +190,13 @@ cross-fitted prior/size-hyperparameter experiments. main_v7 CSV/ZIP verified on 
 main_v8 supersedes v7: joint hidden win/size inference, validation 58.270735797
 (+0.04322427 vs v6), short error -6.1%. Frozen train Brier delta -0.00089045,
 cluster SE 0.00042854. Standard-library port matches NumPy pilot; see HANDOVER.md.
+
+## Correction: previous noise-floor claim is retracted
+The user's report of 59.88 prompted a fresh public-repo review. Independently reproduced
+missing size-regime -> WIN dependence (train z=-10.8 to -16.4) plus persistent shared
+binary episode state. These were incorrectly labeled irreducible noise earlier.
+Current candidate main_v10: 59.070745 in 3-fold episode-held-out calibration, +0.800009
+vs v8. v9 history-fitted baseline is 59.052226. Final v10 test calibration refits all
+released target episodes; validation CSV stays out-of-fold. See HANDOVER.md final section
+for public source, honest evaluation caveats, training steps, and rejected experiments.
+No evidence yet verifying the reported 59.88. Do not claim 59.1 is a ceiling either.

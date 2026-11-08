@@ -19,6 +19,11 @@ Structured Bayesian forecaster (`he/`):
   shared change (all machines flip at a common tick); lag pair and flip tick are marginalised exactly.
 - Payout size given a win: two size vectors per machine type; the active one is
   (payout at lag L >= 2) XOR sign, with L coupled to the win pair; posterior-mixed.
+- If `global_state` is present, joint hypotheses also let the payout-size regime
+  shift the win logit. A shared binary Markov state pools history evidence across
+  machines; its one-step predictive distribution is integrated at the cutoff.
+  Peer effects are included inside this model, so the old post-hoc correction
+  is not applied a second time. The frozen checkpoint is fitted offline.
 - When `cfg.sparse_joint` is enabled, short histories use a joint hidden-state forward
   algorithm over win bits and big-payout bits. It uses the dominant learned size lag per
   pair, posterior-mean cell rates, and averages orientation/sign and constant-size hypotheses.
@@ -42,4 +47,6 @@ Re-create it with:
 python train.py --data /path/to/public --out params.json
 ```
 (`--w-main` overrides the blend weight; default = the bundled value. Re-fit verified bit-identical.)
-Validation (fitted on train only, official metric): see the team README.
+For global-state entries this helper refits the original priors and preserves
+the bundled offline global-state checkpoint; it does not rerun the EM fit.
+Full checkpoint fitting scripts and validation details are in the team's repository.

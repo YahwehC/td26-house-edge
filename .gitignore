@@ -22,3 +22,4 @@ sim/kit_*/
 
 # Derived training-history experiment cache
 eda/_pshort.pkl
+eda/_state_rows.pkl

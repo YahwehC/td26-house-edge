@@ -1,5 +1,9 @@
 # House Edge — handover for another optimizer (Sat Nov 7, ~19:00 CT)
 
+> UPDATE: current best is **main_v10 (59.070745 episode-held-out calibration)**.
+> See the final section. Earlier claims of an irreducible 58.2-58.3 ceiling are retracted.
+> New submission pair: `runs/main_v10/submission.csv` and `dist/main_v10.zip`.
+
 Goal: squeeze more points out of the TAMU Datathon 2026 "House Edge" forecasting entry. Read this first, then
 `CLAUDE.md` (full lab notebook: every experiment with numbers) and `README.md` (how to run). Everything here is
 reproducible from the repo plus the official kit.
@@ -194,3 +198,74 @@ is 30 minutes / two CPU cores / 16 GiB RAM (`kit/RULES.md`).
 Python 3.13 packaged prediction: VERIFIED, maximum difference 0.000e+00 versus the
 Python 3.12 generated CSV. The final ZIP's README was refreshed afterward; every executable
 byte was checked unchanged, all packaged source files match the workspace, and ZIP CRCs pass.
+
+## IMPORTANT: earlier noise-floor conclusions were wrong (Nov 7, Codex)
+
+**Current best: main_v10, 59.070745 / 60 in three-fold episode-held-out calibration.**
+Use `runs/main_v10/submission.csv` with `dist/main_v10.zip` after verification below.
+The previous 58.2-58.3 "information limit" statements in this document and CLAUDE.md
+are retracted. In particular, a lack of marginal residual autocorrelation does NOT
+establish iid hidden noise when payout regime and episode state are omitted.
+
+Discovery source (public research, no code/checkpoint copied):
+https://github.com/Apickle47/house-edge-datathon-2026/tree/main/submissions/main_peer_main
+The public repo reports 59.0356 with held-episode calibration. It has no license, so
+we independently implemented the modeling ideas and fitted our own coefficients.
+The user's reported 59.88 has not been independently located or verified.
+
+Missing mechanisms:
+1. The payout-size regime also changes WIN probability. Train-history leave-one-out
+   offset regressions (`eda/ev60.py`) give logit coefficients steady -0.545 (z -10.8),
+   balanced -0.792 (z -16.4), jackpot -1.021 (z -14.8). Effects are not copied from
+   another model. The old win/size conditional-independence assumption lost this signal.
+2. There is a shared binary, persistent episode effect. A forward-backward EM fit on
+   TRAIN history outcomes (`eda/ev63.py`, `eda/ev64.py`) estimates amplitude 0.3562 and
+   switching probability 0.02. Previous tests failed to isolate this after size effects.
+
+Progression (same validation set; not independent repeated test sets):
+- v8: 58.270736.
+- Size/win post-hoc correction: 58.704185 (`ev61`).
+- Add train-fitted shared-state filter: 58.811322 (`ev62`).
+- Joint global-state structural likelihood: **v9 59.052226** (`ev66`).
+- A fixed interpretable calibration (11 coefficients + episode shift amplitude),
+  fit on two thirds of released validation target episodes and predicting the remaining
+  third: **v10 59.070745** (`ev68`). All three folds improve over v9: +0.0290, +0.0068,
+  +0.0241 points when each fold is scored separately. Final test checkpoint refits this
+  same calibration on all released validation episodes; reported validation predictions
+  remain the out-of-fold predictions, not predictions from the final checkpoint.
+
+v10 ratios: stable .0086, short .0322, drift .0136, shared .0086.
+Gain over v8 +0.800009; descriptive episode bootstrap 95% interval [+0.5685,+1.0397].
+This public set has been used repeatedly during development; this is not an independent
+private-test guarantee. Existing baseline priors still use released train+validation
+histories and the size vectors come from released targets, as before. New supervised
+logit calibration excludes the predicted episode's targets.
+
+Implementation: `he/structured_state.py` enumerates pair/orientation/size-sign/flip
+hypotheses with joint payout likelihoods. The common weather posterior comes from
+history-only emissions; marginalize its one-step predictive distribution at cutoff.
+`he/api.py` selects this model when `params.global_state` exists; no second post-hoc
+coupling shift is applied. Generic fallback weight remains the original 0.1.
+`he/weather.py` contains the standard-library binary filter; `he/global_state.py`
+extracts history states. No third-party dependencies enter the prediction package.
+
+Training reproduction: `eda/ev63.py` -> `eda/ev64.py` -> `eda/ev68.py` ->
+`eda/build_v10.py`. Offline fitting uses NumPy/SciPy. Packaged `train.py` refits the old
+priors but PRESERVES the bundled global-state checkpoint and its provenance; it is not
+an end-to-end reimplementation of the offline EM/supervised calibration. `predict.py`
+only needs test histories and the frozen checkpoint to reproduce the submission.
+
+Rejected new variant: exact sparse latent-category recursion under the global model
+(`ev67`) scored 59.02947, below v9; not enabled. Its missing-peer marginalization remains
+approximate. Do not silently enable `exact_sparse_glm` for main or adaptation.
+
+Checks: `eda/test_weather.py` independently enumerates hidden-state paths, including
+irregular observation gaps and prediction horizon. `eda/test_global_state.py` checks
+normalization and verifies that adding future payouts to input files leaves predictions
+bit-identical. v9 ZIP reproduced on Python 3.13 with max absolute difference 0.
+
+Final main_v10 delivery verification: 1,536 test rows pass the format checker. The ZIP
+was extracted and run under Python 3.13; all probabilities reproduce the Python 3.12
+CSV with maximum difference **0.000e+00**. No competition submission was made.
+Packaged `train.py` verification also passed: refitted base priors plus preserved
+checkpoint/provenance match the full v10 parameter JSON exactly.

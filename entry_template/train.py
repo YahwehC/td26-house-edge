@@ -39,6 +39,16 @@ def main(argv=None):
                 params["cfg"]["sparse_win"] = True
             if bundled_cfg.get("sparse_joint"):
                 params["cfg"]["sparse_joint"] = True
+            if bundled_cfg.get("exact_sparse_glm"):
+                params["cfg"]["exact_sparse_glm"] = True
+            # Preserve the offline-fitted global-state checkpoint. This helper
+            # refits the original priors, not the optional EM checkpoint.
+            checkpoint = load_params(HERE / "params.json").get("global_state")
+            if checkpoint:
+                params["global_state"] = checkpoint
+                metadata = load_params(HERE / "params.json").get("global_state_fit")
+                if metadata:
+                    params["global_state_fit"] = metadata
     else:
         params = {"params_version": 1}
     if w < 1:

@@ -1,0 +1,13 @@
+{
+  "gain_v10_vs_v8": 0.8000092106826671,
+  "bootstrap_95_interval": [
+    0.568483346018759,
+    1.0397473020445887
+  ],
+  "caveat": "Repeated public-set development; interval is descriptive, not an independent test guarantee.",
+  "fold_gains_vs_v9": [
+    0.0290369101483563,
+    0.006755744142203923,
+    0.02408072151906282
+  ]
+}

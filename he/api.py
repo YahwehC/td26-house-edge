@@ -54,7 +54,7 @@ def predict_queries(qs, params):
     """Main model, optionally blended with the generic fallback (params["blend"] = {"w_main": w}),
     then optionally the episode-heat logit correction (params["logit_corr"], see he/corr.py)."""
     pred = _predict_blend(qs, params)
-    if params.get("logit_corr"):
+    if params.get("logit_corr") and not params.get("global_state"):
         from .corr import apply_corr
         pred = apply_corr(qs, pred, params["logit_corr"])
     return pred
@@ -63,7 +63,11 @@ def predict_queries(qs, params):
 def _predict_blend(qs, params):
     w = float((params.get("blend") or {}).get("w_main", 1.0))
     use_main = w > 0 or not params.get("fallback")
-    main = predict(qs, params["size_vectors"], params["cfg"]) if use_main else None
+    if use_main and params.get("global_state"):
+        from .structured_state import predict as predict_states
+        main = predict_states(qs, params, params["global_state"])
+    else:
+        main = predict(qs, params["size_vectors"], params["cfg"]) if use_main else None
     if w >= 1 or not params.get("fallback"):
         return main
     from .fallback import predict_fallback
