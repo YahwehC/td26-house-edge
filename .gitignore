@@ -29,3 +29,7 @@ eda/_pshort_independent.pkl
 eda/_pshort_matched.pkl
 eda/_pshort_matched_predictions.pkl
 eda/_pshort_independent_predictions.pkl
+
+kit2_x/
+kit2_dl/
+GUIDE_live.txt
