@@ -32,12 +32,15 @@ def state_rows(qs,p):
                 mu,slope,k=cp[nm];prob=1/(1+math.exp(-(mu+slope*q['signal'])));pri.append((k*prob,k*(1-prob)))
             ll=[sum(betaln(pri[z^ori][0]+w,pri[z^ori][1]+l)-betaln(*pri[z^ori]) for z,(l,w) in enumerate(counts)) for ori in (0,1)]
             ori=int(ll[1]>ll[0])
+            orientation_zero = math.exp(ll[0]-logsumexp(ll))
             for t in list(sorted(seq))+[cut]:
                 if t<8 or t-a not in seq or t-b not in seq or t-lag not in seq:continue
                 z=int((seq[t-a]>0)==(seq[t-b]>0))^int(t>=tau);high=int((z^ori)==0)
                 bit=int(seq[t-lag]>=2);r=(1-s1)*bit+s1*(1-bit)
-                other=sum(other['seq'].get(t-3,0)>0 for other in ms if other is not q)
+                other=sum(other['seq'].get(t-int(cfg.get('peer_lag',3)),0)>0 for other in ms if other is not q)
                 row={'episode':ep,'machine':q['machine_id'],'type':q['machine_type'],'signal':q['signal'],'high':high,'regime':r,'peer':other,'tick':t,'y':int(seq.get(t,0)>0),'cutoff':cut}
+                row['high_probability'] = orientation_zero if z==0 else 1-orientation_zero
+                row['pair_confidence'] = post[pa]
                 if t==cut:next_rows[q['query_id']]=row
                 else:rows.append(row)
     return rows,next_rows
