@@ -1,0 +1,16 @@
+{
+  "baseline": {
+    "brier": 0.34961782610469466,
+    "seconds": 7.059819000016432
+  },
+  "chain": {
+    "brier": 0.3495837715127351,
+    "seconds": 9.75564290001057
+  },
+  "paired": {
+    "difference": -3.405459195957583e-05,
+    "cluster_se": 6.278577775051525e-05,
+    "episodes": 30,
+    "improved_episodes": 19
+  }
+}

@@ -172,3 +172,8 @@ Tried, no gain: others'-wins logit adjustment, additive lag effects, recency hal
    classification counts, size vectors (2 per type still?), cell priors. Re-run EDA scripts (eda/eda3-4, eda9-10, ev15)
    on kit2 if votes look diffuse — the rule family itself may change (e.g. new pairs/triples, category-based cells).
 4. Adapt model only where validation says so; rebuild + upload; keep receipt.
+
+## Codex follow-up
+See HANDOVER.md "Follow-up optimization": bit-identical inference ~27% faster on validation,
+verified `dist/main_v6_fast.zip`. Missing-size chain experiment is off by default; training
+improvement is below cluster uncertainty. Do not describe this as a score improvement.

@@ -119,7 +119,7 @@ def _pair_prior(cfg):
 class WinMachine:
     """Per-machine sufficient statistics for every pair and every flip tick."""
 
-    def __init__(self, q, cfg, pair_logprior):
+    def __init__(self, q, cfg, pair_logprior, *, stable_only=False):
         self.q = q
         seq, c = q["seq"], q["cutoff"]
         a0, b0 = cfg["beta_a"], cfg["beta_b"]
@@ -133,7 +133,7 @@ class WinMachine:
             BH, BLO = beta_of(cp["hi"]), beta_of(cp["lo"])
         else:
             BH = BLO = None
-        self.taus = list(range(cfg["tau_lo"], c + 1))  # tau == c: flip right now (no evidence)
+        self.taus = [] if stable_only else list(range(cfg["tau_lo"], c + 1))
         self.pairs = list(pair_logprior)
         self.lml_stable = {}   # pair -> log marginal likelihood (no flip)
         self.lml_tau = {}      # pair -> list over taus
@@ -180,16 +180,26 @@ class WinMachine:
                         out += pz * (a0 + w) / (a0 + b0 + w + l)
                     return out
             else:
+                bh_norm, blo_norm = betaln(*BH), betaln(*BLO)
                 def bb(pr, w, l):
-                    return betaln(pr[0] + w, pr[1] + l) - betaln(pr[0], pr[1])
+                    return betaln(pr[0] + w, pr[1] + l) - (bh_norm if pr is BH else blo_norm)
+
+                last_cells, last_assignment = None, None
 
                 def assign(cells):
                     # cells given as [(w, l), (w, l)]; returns log ML and P(cell1 is hi)
+                    # lml() and pred() request exactly the same assignment in succession.
+                    nonlocal last_cells, last_assignment
+                    if cells == last_cells:
+                        return last_assignment
                     (w0, l0), (w1, l1) = cells
                     x = bb(BH, w1, l1) + bb(BLO, w0, l0)   # cell1 hi
                     y = bb(BLO, w1, l1) + bb(BH, w0, l0)   # cell0 hi
                     m = max(x, y)
-                    return m + math.log(0.5 * math.exp(x - m) + 0.5 * math.exp(y - m)), 1 / (1 + math.exp(y - x))
+                    last_cells = cells
+                    last_assignment = (m + math.log(0.5 * math.exp(x - m) + 0.5 * math.exp(y - m)),
+                                       1 / (1 + math.exp(y - x)))
+                    return last_assignment
 
                 def lml(cells):
                     return assign(cells)[0]

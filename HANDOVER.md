@@ -96,3 +96,24 @@ inspect `runs\r2_v0\params.json` votes and extend the model family; the fallback
 params + CSVs · `dist/` zips · `eda/` experiment scripts (evNN.py, numbered chronologically) · `hx/` experiment copy
 of the model with feature flags · `sim/` synthetic generator · `research/` web-research briefs.
 Env: `.venv` (Python 3.12, stdlib only needed); results are identical on 3.13.
+
+## Follow-up optimization (Codex, Nov 7)
+- Production speedup: skip change-point construction when the episode prior is stable-only;
+  cache the consecutive identical hi/lo assignment and precompute Beta normalization constants.
+- `eda/check_fast.py` compares against handover commit `d783b27` on all 768 validation queries:
+  6.50 s -> 4.73 s (one local timing, ~27% less), bit-identical probabilities; score remains
+  58.2275115 with existing final params. This is a runtime gain, not an accuracy gain.
+- `dist/main_v6_fast.zip` reproduces `runs/main_v6/submission.csv` with max difference 0.
+  Existing v6 params and CSV are unchanged. Packaging verification passed.
+- Experimental `size_chain_missing` (off by default): forward marginalization along size-lag
+  residue chains, using empirical win rate only for missing wins. Exact for that auxiliary
+  model, approximate for the full XNOR process. Standard forward recursion reference:
+  https://mc-stan.org/docs/2_28/stan-users-guide/hmms.html . Independently checked against
+  exhaustive hidden-bit enumeration for lags 1, 2, 3 and both signs (`eda/test_size_chain.py`).
+- Predeclared comparison on 6,000 pseudo-short queries: Brier 0.349617826 -> 0.349583772;
+  paired delta -0.00003405, SE 0.00006279 clustered by the 30 ORIGINAL episodes (not the
+  750 overlapping resamples); 19/30 improve. Insufficient evidence: NOT enabled and no
+  validation sweep performed. Baseline priors are existing main_v6 final priors, not an
+  independent cross-fit, so these are exploratory training diagnostics, not OOS gains.
+- Reproduce: run `eda/ev42.py`, `eda/ev54.py`, `eda/test_size_chain.py`, `eda/check_fast.py`.
+  Summary results are `eda/ev54_train.json` and `eda/check_fast_result.json`.

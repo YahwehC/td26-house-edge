@@ -125,6 +125,9 @@ class SizeEvidence:
         pb = (nb + 1) / (len(seq) + 2)
         self.lag = {}
         for L in range(1, MAXLAG + 1):
+            if cfg.get("size_chain_missing") and len(seq) < 0.6 * c:
+                self.lag[L] = [self._chain(seq, c, L, s) for s in (0, 1)]
+                continue
             xs = [(seq[t - L] >= 2, k) for t, k in wins if (t - L) in seq]
             big_c = {seq[c - L] >= 2: 1.0} if (c - L) in seq else {True: pb, False: 1 - pb}
             miss = [k for t, k in wins if (t - L) not in seq] if cfg.get("size_marg_missing") else []
@@ -137,6 +140,35 @@ class SizeEvidence:
                 pr1 = math.fsum(pp for b, pp in big_c.items() if (int(b) ^ s) == 1)
                 row.append((ll, pr1))
             self.lag[L] = row
+
+    def _chain(self, seq, cutoff, lag, sign):
+        """Integrate missing big-payout bits along each residue chain.
+
+        Observed wins are conditioned on; missing wins use the smoothed
+        marginal win rate. This is exact for that auxiliary size-chain model,
+        not for the full XNOR win process.
+        """
+        win_rate = (sum(v > 0 for v in seq.values()) + 1) / (len(seq) + 2)
+        a = win_rate * (1 - self.Vn[sign][0])
+        b = win_rate * (1 - self.Vn[1 - sign][0])
+        stationary = a / (1 - b + a)
+        ll = 0.0
+        pred = stationary
+        for residue in range(lag):
+            big = stationary
+            for t in range(residue, cutoff, lag):
+                value = seq.get(t)
+                if value is None:
+                    big = (1 - big) * a + big * b
+                elif value == 0:
+                    big = 0.0
+                else:
+                    k = SIZE_IDX[value]
+                    ll += math.log((1 - big) * self.Vn[sign][k] + big * self.Vn[1 - sign][k])
+                    big = float(value >= 2)
+            if residue == cutoff % lag:
+                pred = big
+        return ll, pred if sign == 0 else 1 - pred
 
     def factor_and_r1(self, lag_prior, cfg):
         pc = cfg["size_const"]
@@ -176,6 +208,10 @@ def predict_joint(queries, vecs, cfg=None):
     out = {}
     for ep, qs in sorted(by_ep.items()):
         qs = sorted(qs, key=lambda q: q["machine_id"])
+        short = sum(len(q["seq"]) for q in qs) < 0.6 * sum(q["cutoff"] for q in qs)
+        pri = cfg.get("model_prior_short") if short else None
+        pri = pri or cfg["model_prior"]
+        stable_only = pri.get("stable", 0) > 0 and not any(pri.get(k, 0) > 0 for k in ("drift", "shared"))
         ms, per_pair = [], []
         for q in qs:
             se = SizeEvidence(q, vecs, cfg)
@@ -183,7 +219,7 @@ def predict_joint(queries, vecs, cfg=None):
             lp = {p: base_lp[p] + pp[p][0] for p in base_lp}
             z = logsumexp(list(lp.values()))
             per_pair.append((se, pp))
-            ms.append(WinMachine(q, cfg, {p: v - z for p, v in lp.items()}))
+            ms.append(WinMachine(q, cfg, {p: v - z for p, v in lp.items()}, stable_only=stable_only))
         ws, diag = episode_posterior_joint(ms, cfg)
         for j, (q, w) in enumerate(zip(qs, ws)):
             w = min(max(w, 1e-6), 1 - 1e-6)

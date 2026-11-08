@@ -19,3 +19,6 @@ kit2/
 kit2_dl/
 dist/*_src/
 sim/kit_*/
+
+# Derived training-history experiment cache
+eda/_pshort.pkl

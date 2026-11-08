@@ -1,0 +1,21 @@
+{
+  "original_seconds": 6.502723600016907,
+  "optimized_seconds": 4.734119799977634,
+  "max_abs_difference": 0.0,
+  "score": {
+    "points": 58.22751152724863,
+    "R": 0.030440738857986396,
+    "ratios": {
+      "drift": 0.0235,
+      "shared_change": 0.0236,
+      "short_history": 0.0504,
+      "stable": 0.0242
+    },
+    "err": {
+      "drift": 0.00446,
+      "shared_change": 0.00486,
+      "short_history": 0.00895,
+      "stable": 0.00475
+    }
+  }
+}
