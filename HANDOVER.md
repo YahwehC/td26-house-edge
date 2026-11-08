@@ -388,3 +388,26 @@ Other tested mechanisms, all DISABLED in v12:
 Correction to the earlier residual-screen description: `eda/ev70.py` uses released
 validation target residuals, not train-history outcomes. Its maximum cluster z=2.44
 was a diagnostic of that public set and supplied no new production coefficient.
+
+### Further train-only screens (ev89-93)
+- ev89 uses 129,916 train-history rows with episode-fold coefficient fitting and
+  final-40%-of-history scoring. Additional signal nonlinearity/type/state interactions
+  worsen Brier by +.00002761 (SE .00001320); size-state interactions are neutral
+  -.00000212 (SE .00000744); nonlinear/type/state-specific peer coupling is neutral
+  +.00000547 (SE .00001383). No validation sweep and none enabled.
+- ev90 compares binary weather against a continuous AR(1) latent process, using
+  21 discretization states and episode-held-out tail likelihood. AR persistence fits
+  rho .957-.964 with scale .308-.334, but loses mean log-score .0490 (SE .0590)
+  versus the fixed binary model. Even refitting binary amplitude/hazard loses .0190
+  (SE .0173); retain the current weather model. No validation test.
+- ev91 adds own win lags 1-8 or extra peer win lags 1,2,4-8 plus 8-tick peer net
+  payout after controlling for the current state/size/weather model. Held-episode
+  tail Brier worsens +.00001594 (SE .00001403) and +.00003202 (SE .00001356).
+  No extra lag coefficient enters production.
+- ev92 uses smoothed OTHER-machine weather within the observed prefix to estimate
+  machine intercepts. Stable-train prefix/tail Brier improves -.00002685 (SE .00001699).
+  The single held-episode calibration check ev93 gives 59.115211, below v12 59.117106;
+  `global_state.offset_smoothing` remains disabled. Independent exhaustive weather-path
+  enumeration checks the resulting regularized intercept's score equation.
+All these component checks freeze structural labels inferred from full training
+histories; this limitation remains. No new best submission after main_v12.

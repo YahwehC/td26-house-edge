@@ -1,5 +1,6 @@
 """Persistent machine logit offsets with a zero-centered Gaussian prior.
-History weather covariates use only other machines and strictly earlier ticks.
+Default weather covariates use other machines and strictly earlier ticks.
+Optional offset_smoothing uses all supplied peer history, still excluding self.
 """
 import math
 from collections import defaultdict
@@ -20,6 +21,16 @@ def estimate_offsets(rows, config):
     for times in by.values():
         machines={mid for observations in times.values() for mid,_,_ in observations}
         for mid in sorted(machines):
+            if config.get('offset_smoothing'):
+                from .weather_history import smooth_weather
+                peers = {tick: [(eta,y) for machine,eta,y in observations if machine != mid]
+                         for tick,observations in times.items()}
+                history = smooth_weather(max(times)+1, peers, scale, hazard)
+                for tick,observations in sorted(times.items()):
+                    for machine,eta,y in observations:
+                        if machine == mid:
+                            records[mid].append((eta,history[tick],y))
+                continue
             hot=.5;last=None
             for tick,observations in sorted(times.items()):
                 if last is not None:
