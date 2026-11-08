@@ -5,7 +5,7 @@ sys.path.insert(0,'.')
 from he.model import load_split
 from he.api import load_params,predict_queries
 q,e=load_split('kit/public','validation');ep=q[0]['episode_id'];sample=[r for r in q if r['episode_id']==ep]
-p=load_params('runs/main_v9/params.json');base=predict_queries(sample,p)
+p=load_params(sys.argv[1] if len(sys.argv)>1 else 'runs/main_v9/params.json');base=predict_queries(sample,p)
 assert all(min(row)>=0 and abs(sum(row)-1)<1e-10 for row in base.values())
 with tempfile.TemporaryDirectory() as temporary:
     folder=Path(temporary)/'test';folder.mkdir()

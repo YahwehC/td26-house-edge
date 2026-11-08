@@ -204,3 +204,11 @@ vs v8. v9 history-fitted baseline is 59.052226. Final v10 test calibration refit
 released target episodes; validation CSV stays out-of-fold. See HANDOVER.md final section
 for public source, honest evaluation caveats, training steps, and rejected experiments.
 No evidence yet verifying the reported 59.88. Do not claim 59.1 is a ceiling either.
+
+## Additional rule search: main_v11
+Persistent machine offsets selected on chronological train outcomes improve episode-
+held-out calibration score 59.070745 -> 59.097439. Stable/drift improve; short/shared
+slightly worsen. Drift shows TRAIN evidence for gradual reversal (half-width 8), while
+shared_change favors abrupt reversal, but enabling this does not improve score and is
+not shipped. Weather dwell/uncertainty variants do not materially improve. See final
+HANDOVER section for evidence, caveats, scripts and matched main_v11 CSV/ZIP.

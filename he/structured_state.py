@@ -13,8 +13,11 @@ def predict(queries,params,config):
     for q in queries:by[q['episode_id']].append(q)
     # Obtain a history-based shared-state estimate before the forecast tick.
     rows,_=state_rows(queries,params);traces=defaultdict(lambda:defaultdict(list));cuts={}
+    from .machine_offset import estimate_offsets
+    offsets = estimate_offsets(rows, config)
     for r in rows:
         i=types.index(r['type']);eta=cf[2*i+r['high']]+cf[6]*r['signal']+cf[7+i]*(r['regime']-.5)+cf[10]*(r['peer']-3.5)
+        eta += offsets.get(r['machine'], 0.)
         if config.get('soft_weather'):
             high = r['high_probability']
             probabilities = []
@@ -22,7 +25,7 @@ def predict(queries,params,config):
                 probability = 0.
                 for state, ps in ((0, 1-high), (1, high)):
                     for regime, pr in ((0, 1-r['regime']), (1, r['regime'])):
-                        z = cf[2*i+state]+cf[6]*r['signal']+cf[7+i]*(regime-.5)+cf[10]*(r['peer']-3.5)+weather
+                        z = cf[2*i+state]+cf[6]*r['signal']+cf[7+i]*(regime-.5)+cf[10]*(r['peer']-3.5)+weather+offsets.get(r['machine'],0.)
                         probability += ps*pr/(1+math.exp(-z))
                 probabilities.append(probability)
             eta = probabilities
@@ -32,7 +35,7 @@ def predict(queries,params,config):
     class Machine:
         pass
     for ep,qs in by.items():
-        machines=[];regimes=[];short=sum(len(q['seq']) for q in qs)<.6*sum(q['cutoff'] for q in qs)
+        machines=[];regimes=[];weather_histories=[];weather_forecasts=[];short=sum(len(q['seq']) for q in qs)<.6*sum(q['cutoff'] for q in qs)
         if short and cfg.get('exact_sparse_glm'):
             from .sparse_glm import predict as sparse_predict
             for q in qs:
@@ -42,6 +45,7 @@ def predict(queries,params,config):
         for q in qs:
             seq=q['seq'];cut=q['cutoff'];m=Machine();m.q=q;m.taus=[] if short else list(range(cfg['tau_lo'],cut+1));m.pairs=[];m.pair_logprior={};m.lml_stable={};m.lml_tau={};m.pred_stable={};m.pred_tau={};reg={}
             ramp = config.get('drift_ramp', 0)
+            histories, forecasts = {}, {}
             if ramp:
                 m.drift_lml_tau = {}
                 m.drift_pred_tau = {}
@@ -64,17 +68,20 @@ def predict(queries,params,config):
                                 cats={delay:value[0] for delay,value in zip(lagset,combo)};weight=math.prod(value[1] for value in combo)
                                 state=int((cats[a]>0)==(cats[b]>0))^orientation^flip;r=int(cats[lag]==2)^sign
                                 eta=cf[2*typeidx+state]+cf[6]*q['signal']+cf[7+typeidx]*(r-.5)+cf[10]*(peers[t]-3.5)
+                                eta += offsets.get(q['machine_id'], 0.)
                                 pw=(1-weather)/(1+math.exp(-(eta-scale)))+weather/(1+math.exp(-(eta+scale)))
                                 output[0]+=weight*(1-pw)
                                 for k in range(4):output[k+1]+=weight*pw*V[r][k]
                             return output
-                        before=[0.];after=[0.];p_before=[];p_after=[]
+                        before=[0.];after=[0.];p_before=[];p_after=[];local_weather=[]
                         for t in ticks:
                             value=seq[t];idx=0 if value==0 else SIZE_IDX[value]+1
                             p_before.append(max(distribution(t,0,.5)[idx],1e-300))
                             p_after.append(max(distribution(t,1,.5)[idx],1e-300))
                             before.append(before[-1]+math.log(p_before[-1]))
                             after.append(after[-1]+math.log(p_after[-1]))
+                            if config.get('joint_weather'):
+                                local_weather.append((t, [(1-distribution(t,flip,0.)[0], 1-distribution(t,flip,1.)[0]) for flip in (0,1)]))
                         nxt0=distribution(cut,0,hot.get(ep,.5));nxt1=distribution(cut,1,hot.get(ep,.5))
                         m.lml_stable[key]=before[-1];m.pred_stable[key]=1-nxt0[0];m.pred_tau[key]=[1-nxt1[0]]*len(m.taus)
                         j=0;ll=[]
@@ -82,6 +89,9 @@ def predict(queries,params,config):
                             while j<len(ticks) and ticks[j]<tau:j+=1
                             ll.append(before[j]+after[-1]-after[j])
                         m.lml_tau[key]=ll;reg[key]=(nxt0,nxt1)
+                        if config.get('joint_weather'):
+                            histories[key]=local_weather
+                            forecasts[key]=[[distribution(cut,flip,weather) for weather in (0.,1.)] for flip in (0,1)]
                         if ramp:
                             import bisect
                             dl, dp = [], []
@@ -99,7 +109,27 @@ def predict(queries,params,config):
                                 dp.append((1-fraction)*(1-nxt0[0])+fraction*(1-nxt1[0]))
                             m.drift_lml_tau[key]=dl
                             m.drift_pred_tau[key]=dp
-            machines.append(m);regimes.append((reg,V))
+            machines.append(m);regimes.append((reg,V));weather_histories.append(histories);weather_forecasts.append(forecasts)
+        if config.get('joint_weather'):
+            _, initial_diag = episode_posterior_joint(machines,cfg)
+            times = defaultdict(list)
+            stable_episode = initial_diag['post'].get('stable',0) > .5
+            for m,histories,post in zip(machines,weather_histories,initial_diag['pair_post']):
+                key=max(post,key=post.get)
+                tau=m.q['cutoff']+1
+                if not stable_episode and m.taus:
+                    j=max(range(len(m.taus)),key=lambda j:m.lml_tau[key][j])
+                    if m.lml_tau[key][j]-math.log(len(m.taus))>m.lml_stable[key]:
+                        tau=m.taus[j]
+                for tick, probabilities in histories[key]:
+                    times[tick].append((probabilities[int(tick>=tau)],int(m.q['seq'][tick]>0)))
+            updated_hot=filter_episode((qs[0]['cutoff'],times),scale,config['hazard'])[1]
+            for m,(reg,V),forecasts in zip(machines,regimes,weather_forecasts):
+                for key,flips in forecasts.items():
+                    updated=[[cold*(1-updated_hot)+warm*updated_hot for cold,warm in zip(*distribution)] for distribution in flips]
+                    reg[key]=updated
+                    m.pred_stable[key]=1-updated[0][0]
+                    m.pred_tau[key]=[1-updated[1][0]]*len(m.taus)
         win,_=episode_posterior_joint(machines,cfg)
         predictions=[[1-w] for w in win]
         for k in range(1,5):

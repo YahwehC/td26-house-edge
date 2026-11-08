@@ -24,6 +24,9 @@ Structured Bayesian forecaster (`he/`):
   machines; its one-step predictive distribution is integrated at the cutoff.
   Peer effects are included inside this model, so the old post-hoc correction
   is not applied a second time. The frozen checkpoint is fitted offline.
+- `global_state.machine_variance`, when present, enables a regularized persistent
+  machine intercept estimated from its history. The shared-weather covariate used
+  to estimate that intercept excludes the machine itself and uses earlier ticks.
 - When `cfg.sparse_joint` is enabled, short histories use a joint hidden-state forward
   algorithm over win bits and big-payout bits. It uses the dominant learned size lag per
   pair, posterior-mean cell rates, and averages orientation/sign and constant-size hypotheses.

@@ -1,0 +1,398 @@
+[
+  {
+    "name": "own_net_8",
+    "score_z": 2.4368422674845402,
+    "beta_step": 0.026214977048183475,
+    "episodes": 96
+  },
+  {
+    "name": "own_net_16",
+    "score_z": 2.4005295865153986,
+    "beta_step": 0.0340531336475594,
+    "episodes": 96
+  },
+  {
+    "name": "own_net_32",
+    "score_z": 2.064089397802342,
+    "beta_step": 0.035637726049130763,
+    "episodes": 96
+  },
+  {
+    "name": "own_big_11",
+    "score_z": 1.9470686338395335,
+    "beta_step": 0.040074932390929345,
+    "episodes": 96
+  },
+  {
+    "name": "own_win_5",
+    "score_z": 1.8484935315513067,
+    "beta_step": 0.02654907125358797,
+    "episodes": 96
+  },
+  {
+    "name": "own_big_5",
+    "score_z": 1.7473601654666835,
+    "beta_step": 0.032461723067401936,
+    "episodes": 96
+  },
+  {
+    "name": "time",
+    "score_z": 1.690341142287279,
+    "beta_step": 0.025837676241354007,
+    "episodes": 96
+  },
+  {
+    "name": "peer_net_16",
+    "score_z": -1.5683542417382073,
+    "beta_step": -0.007227005993342684,
+    "episodes": 96
+  },
+  {
+    "name": "own_win_11",
+    "score_z": 1.5643914152000036,
+    "beta_step": 0.02345479144944661,
+    "episodes": 96
+  },
+  {
+    "name": "own_net_4",
+    "score_z": 1.555051157471652,
+    "beta_step": 0.011475283733217814,
+    "episodes": 96
+  },
+  {
+    "name": "peer_win_9",
+    "score_z": -1.3687376770640853,
+    "beta_step": -0.00772285413173688,
+    "episodes": 96
+  },
+  {
+    "name": "own_big_6",
+    "score_z": 1.3371241562513208,
+    "beta_step": 0.025297655276220955,
+    "episodes": 96
+  },
+  {
+    "name": "peer_win_6",
+    "score_z": 1.322822282042145,
+    "beta_step": 0.008028049760943155,
+    "episodes": 96
+  },
+  {
+    "name": "own_win_7",
+    "score_z": 1.3206971527004134,
+    "beta_step": 0.01793653402169841,
+    "episodes": 96
+  },
+  {
+    "name": "peer_win_4",
+    "score_z": 1.2870501537595131,
+    "beta_step": 0.008244213210630662,
+    "episodes": 96
+  },
+  {
+    "name": "own_big_3",
+    "score_z": 1.286595730179519,
+    "beta_step": 0.023168129711352393,
+    "episodes": 96
+  },
+  {
+    "name": "own_win_2",
+    "score_z": 1.286556626925505,
+    "beta_step": 0.021537456981236536,
+    "episodes": 96
+  },
+  {
+    "name": "own_big_4",
+    "score_z": 1.2438524409074774,
+    "beta_step": 0.027112460730315424,
+    "episodes": 96
+  },
+  {
+    "name": "signal_x_high",
+    "score_z": -1.2367460165118613,
+    "beta_step": -0.03291889845696098,
+    "episodes": 96
+  },
+  {
+    "name": "own_big_15",
+    "score_z": 1.2036798753861193,
+    "beta_step": 0.020713845980533288,
+    "episodes": 96
+  },
+  {
+    "name": "own_win_6",
+    "score_z": 1.0919676676779912,
+    "beta_step": 0.017130577827214492,
+    "episodes": 96
+  },
+  {
+    "name": "own_win_3",
+    "score_z": 1.0855287771465254,
+    "beta_step": 0.01610482680852862,
+    "episodes": 96
+  },
+  {
+    "name": "peer_win_11",
+    "score_z": 1.0418021833941378,
+    "beta_step": 0.0063992790639424025,
+    "episodes": 96
+  },
+  {
+    "name": "peer_win_15",
+    "score_z": -1.0380904371742627,
+    "beta_step": -0.005842931457859086,
+    "episodes": 96
+  },
+  {
+    "name": "own_big_14",
+    "score_z": 0.9542510303833095,
+    "beta_step": 0.018220045078424126,
+    "episodes": 96
+  },
+  {
+    "name": "own_big_7",
+    "score_z": 0.9440279698435474,
+    "beta_step": 0.017874008205235114,
+    "episodes": 96
+  },
+  {
+    "name": "peer_win_5",
+    "score_z": -0.9298631472659984,
+    "beta_step": -0.006106127557528753,
+    "episodes": 96
+  },
+  {
+    "name": "own_big_2",
+    "score_z": 0.9210328639354937,
+    "beta_step": 0.019189585793540655,
+    "episodes": 96
+  },
+  {
+    "name": "own_big_16",
+    "score_z": -0.8622829130653842,
+    "beta_step": -0.01883401439195117,
+    "episodes": 96
+  },
+  {
+    "name": "peer_win_2",
+    "score_z": -0.8387390212685972,
+    "beta_step": -0.006141583618634775,
+    "episodes": 96
+  },
+  {
+    "name": "peer_win_12",
+    "score_z": -0.8379053508912715,
+    "beta_step": -0.005461476591152392,
+    "episodes": 96
+  },
+  {
+    "name": "regime_x_high",
+    "score_z": -0.8327373156510327,
+    "beta_step": -0.03514516189766874,
+    "episodes": 96
+  },
+  {
+    "name": "own_big_1",
+    "score_z": 0.8315230611811482,
+    "beta_step": 0.01784121502980117,
+    "episodes": 96
+  },
+  {
+    "name": "peer_x_high",
+    "score_z": -0.811462907641572,
+    "beta_step": -0.010279805758094186,
+    "episodes": 96
+  },
+  {
+    "name": "own_win_10",
+    "score_z": 0.8057803485753955,
+    "beta_step": 0.011507965376533216,
+    "episodes": 96
+  },
+  {
+    "name": "peer_net_8",
+    "score_z": -0.7811307842768676,
+    "beta_step": -0.003181215552891063,
+    "episodes": 96
+  },
+  {
+    "name": "signal_steady",
+    "score_z": 0.6904060652368128,
+    "beta_step": 0.0187265358716337,
+    "episodes": 96
+  },
+  {
+    "name": "peer_net_32",
+    "score_z": -0.6297618579807538,
+    "beta_step": -0.003613574538621758,
+    "episodes": 96
+  },
+  {
+    "name": "own_win_12",
+    "score_z": 0.5941555869334154,
+    "beta_step": 0.00971109856077702,
+    "episodes": 96
+  },
+  {
+    "name": "regime_high_steady",
+    "score_z": -0.5465652549900931,
+    "beta_step": -0.03527920372707709,
+    "episodes": 96
+  },
+  {
+    "name": "regime_high_balanced",
+    "score_z": -0.5222902016808658,
+    "beta_step": -0.03427678817231696,
+    "episodes": 96
+  },
+  {
+    "name": "own_win_13",
+    "score_z": 0.5108189031539717,
+    "beta_step": 0.008446545034589142,
+    "episodes": 96
+  },
+  {
+    "name": "own_win_4",
+    "score_z": 0.4922511520548946,
+    "beta_step": 0.008034753413306261,
+    "episodes": 96
+  },
+  {
+    "name": "own_win_14",
+    "score_z": 0.4290485413630932,
+    "beta_step": 0.005817377501953673,
+    "episodes": 96
+  },
+  {
+    "name": "regime_high_jackpot",
+    "score_z": -0.4280544879207882,
+    "beta_step": -0.03616379034280549,
+    "episodes": 96
+  },
+  {
+    "name": "own_big_12",
+    "score_z": 0.3734866307729365,
+    "beta_step": 0.008325893339276141,
+    "episodes": 96
+  },
+  {
+    "name": "own_win_8",
+    "score_z": 0.35579372046320445,
+    "beta_step": 0.005519413466432856,
+    "episodes": 96
+  },
+  {
+    "name": "signal_jackpot",
+    "score_z": -0.33901537621743705,
+    "beta_step": -0.00988098661471865,
+    "episodes": 96
+  },
+  {
+    "name": "own_win_15",
+    "score_z": 0.33169269242947513,
+    "beta_step": 0.004622738589717776,
+    "episodes": 96
+  },
+  {
+    "name": "own_big_8",
+    "score_z": -0.29791152806140747,
+    "beta_step": -0.007131035265188131,
+    "episodes": 96
+  },
+  {
+    "name": "signal_balanced",
+    "score_z": -0.25144644940265515,
+    "beta_step": -0.006229407857559746,
+    "episodes": 96
+  },
+  {
+    "name": "peer_win_7",
+    "score_z": -0.22631374195530546,
+    "beta_step": -0.0012742860782388391,
+    "episodes": 96
+  },
+  {
+    "name": "own_big_9",
+    "score_z": 0.22437069446402347,
+    "beta_step": 0.004228356285527085,
+    "episodes": 96
+  },
+  {
+    "name": "peer_win_13",
+    "score_z": 0.20183300108958568,
+    "beta_step": 0.0013249050715188906,
+    "episodes": 96
+  },
+  {
+    "name": "own_win_16",
+    "score_z": -0.19608946642733488,
+    "beta_step": -0.003039031494762823,
+    "episodes": 96
+  },
+  {
+    "name": "peer_win_16",
+    "score_z": 0.19094151504220547,
+    "beta_step": 0.0010819720237422307,
+    "episodes": 96
+  },
+  {
+    "name": "own_big_10",
+    "score_z": -0.15246234074423554,
+    "beta_step": -0.00274692502063393,
+    "episodes": 96
+  },
+  {
+    "name": "peer_win_3",
+    "score_z": 0.09744891436409327,
+    "beta_step": 0.0006666118744174421,
+    "episodes": 96
+  },
+  {
+    "name": "peer_win_14",
+    "score_z": -0.09724803814414047,
+    "beta_step": -0.0005212949869993314,
+    "episodes": 96
+  },
+  {
+    "name": "peer_net_4",
+    "score_z": -0.09132645557868013,
+    "beta_step": -0.000292889964206637,
+    "episodes": 96
+  },
+  {
+    "name": "peer_win_10",
+    "score_z": -0.08584465187011348,
+    "beta_step": -0.0005357785498090741,
+    "episodes": 96
+  },
+  {
+    "name": "own_win_9",
+    "score_z": -0.08388215782046732,
+    "beta_step": -0.0012255213179443983,
+    "episodes": 96
+  },
+  {
+    "name": "own_win_1",
+    "score_z": -0.07005351211806045,
+    "beta_step": -0.001155560626166834,
+    "episodes": 96
+  },
+  {
+    "name": "peer_win_8",
+    "score_z": 0.06716244036897073,
+    "beta_step": 0.00045498514891478185,
+    "episodes": 96
+  },
+  {
+    "name": "peer_win_1",
+    "score_z": -0.033927686628198665,
+    "beta_step": -0.0002043337476949493,
+    "episodes": 96
+  },
+  {
+    "name": "own_big_13",
+    "score_z": -0.012009456292346633,
+    "beta_step": -0.00024616436957228954,
+    "episodes": 96
+  }
+]

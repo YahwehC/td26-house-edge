@@ -51,6 +51,15 @@ def episode_posterior_joint(machines, cfg):
         rho = cfg["drift_rho"]
         ld, pd_, pw_d = 0.0, [], []
         for m, i in zip(machines, infos):
+            if hasattr(m, "drift_lml_tau"):
+                i = dict(i)
+                i["lt"], i["pt"], i["wt"] = [], [], []
+                for k in range(len(m.taus)):
+                    l, pr, w = _mix(m, [m.drift_lml_tau[p][k] for p in m.pairs],
+                                     [m.drift_pred_tau[p][k] for p in m.pairs])
+                    i["lt"].append(l)
+                    i["pt"].append(pr)
+                    i["wt"].append(w)
             tl = tau_logprior(m.taus, m.q["cutoff"], cfg.get("tau_hist_drift"), bw)
             terms = [math.log(rho) + a + b for a, b in zip(tl, i["lt"])]
             lst = math.log(1 - rho) + i["ls"] if rho < 1 else -math.inf

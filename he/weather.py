@@ -67,8 +67,12 @@ def filter_episode(trace,scale,hazard):
         for sign in (-1,1):
             ll=0.
             for eta,y in rows:
-                z=eta+sign*scale
-                ll+=y*z-(max(z,0)+math.log1p(math.exp(-abs(z))))
+                if isinstance(eta, (tuple, list)):
+                    probability = eta[0 if sign < 0 else 1]
+                    ll += math.log(probability if y else 1-probability)
+                else:
+                    z=eta+sign*scale
+                    ll+=y*z-(max(z,0)+math.log1p(math.exp(-abs(z))))
             emissions.append(ll)
         terms=[math.log(max(1-hot,1e-300))+emissions[0],math.log(max(hot,1e-300))+emissions[1]]
         norm=logsumexp(terms);hot=math.exp(terms[1]-norm);likelihood+=norm;last=tick

@@ -1,8 +1,8 @@
 # House Edge — handover for another optimizer (Sat Nov 7, ~19:00 CT)
 
-> UPDATE: current best is **main_v10 (59.070745 episode-held-out calibration)**.
+> UPDATE: current best is **main_v11 (59.097439 episode-held-out calibration)**.
 > See the final section. Earlier claims of an irreducible 58.2-58.3 ceiling are retracted.
-> New submission pair: `runs/main_v10/submission.csv` and `dist/main_v10.zip`.
+> New submission pair: `runs/main_v11/submission.csv` and `dist/main_v11.zip`.
 
 Goal: squeeze more points out of the TAMU Datathon 2026 "House Edge" forecasting entry. Read this first, then
 `CLAUDE.md` (full lab notebook: every experiment with numbers) and `README.md` (how to run). Everything here is
@@ -269,3 +269,57 @@ was extracted and run under Python 3.13; all probabilities reproduce the Python 
 CSV with maximum difference **0.000e+00**. No competition submission was made.
 Packaged `train.py` verification also passed: refitted base priors plus preserved
 checkpoint/provenance match the full v10 parameter JSON exactly.
+
+## Further mechanism search: persistent machine offsets (main_v11)
+
+New candidate **main_v11: 59.097438551**, versus v10 59.070745008 (+0.026694).
+Matched files: `runs/main_v11/submission.csv` and `dist/main_v11.zip`.
+It retains the same three-fold episode-held-out calibration predictions and adds a
+zero-centered, history-estimated machine intercept with prior variance 0.04.
+`he/machine_offset.py` estimates each offset using that machine's outcomes; the weather
+covariate uses OTHER machines' strictly earlier outcomes, excluding current/future ticks.
+The offset is applied consistently in joint hypothesis likelihoods, weather emissions,
+and forecast probabilities. No new validation-fitted scalar is used.
+
+Training selection (`eda/ev77.py`): stable train machines, first 60% of ticks for offset
+estimation and remaining 40% for outcome scoring. Variance 0/.01/.04/.09/.16 yielded
+Brier .08411245/.08398851/.08384424/.08383403/.08389788. Select .04 as the smaller
+variance within one SE of the minimum (.09); paired episode delta -.0002682, SE .0000903.
+Caveat: the latent structural state labels/global coefficient initialization were
+inferred from full training histories; this is a chronological check of the intercept
+component, not a wholly future-blind end-to-end cross-fit. No validation targets enter
+this variance selection. The subsequent held-episode calibration check is ev78.
+
+Condition tradeoffs: stable ratio .0086 -> .0070; drift .0136 -> .0125;
+short .0322 -> .0329; shared .0086 -> .0087. Keep v10 as fallback; the public-set gain
+is small and no private-test gain is guaranteed.
+
+Other newly tested rules:
+- **Drift reversals are gradual; shared changes abrupt** (ev71). A linear transition
+  with half-width 8 ticks improves TRAIN marginal log-evidence by +173.4 across 192
+  drift machines, but worsens shared-change evidence by -146.2. Abrupt/ramp use equal
+  onset-time support. The pilot uses inferred pair/sign states, not ground-truth labels.
+  Enabling a ramp only for drift in the episode mixture scores 59.06902, below v10;
+  `global_state.drift_ramp` therefore remains absent in shipped params.
+- A causal train residual screen of own/peer lags, payouts and interactions (ev70)
+  has max episode-clustered score |z| 2.44, own net over 8 ticks. No feature adopted.
+- Minimum-duration weather regimes (ev73) improve likelihood by only ~1.05 versus the
+  existing memoryless filter; insufficient evidence to add complexity, not adopted.
+- Integrating orientation/size uncertainty in weather emissions (ev74) scores 59.07115
+  (+0.00040), effectively neutral. Joint-likelihood MAP weather states (ev75) score
+  59.06466; not adopted. Both remain explicit opt-in experimental flags only.
+- Oracle state diagnosis (ev76), NOT a deployable result: knowing high/low, size, and
+  weather states yields 59.7729 under the current global coefficients. Residual logit
+  RMS ~0.197 motivates persistent machine variation. This is NOT an upper bound.
+
+Rebuild v11: `eda/build_v11.py` from the fixed main_v10 checkpoint and ev78 OOF report.
+Checks: `eda/test_machine_offset.py` verifies the regularized intercept's score equation,
+zero-variance behavior, and weather probability/eta emission equivalence;
+`eda/test_weather.py` independently enumerates HMM paths. `eda/test_global_state.py
+runs/main_v11/params.json` checks normalization and exact future-tick invariance.
+
+main_v11 final verification: all 1,536 test rows pass the checker. Extracted ZIP rerun
+under Python 3.13 reproduces the Python 3.12 CSV with maximum absolute difference 0.
+Independent drift-path test confirms the optional ramp does not affect shared-change
+likelihoods. Neither ramp, soft-weather, nor joint-weather experimental flags are enabled
+in main_v11. The only new enabled feature is machine_variance=0.04.
