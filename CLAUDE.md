@@ -214,3 +214,4 @@ not shipped. Weather dwell/uncertainty variants do not materially improve. See f
 HANDOVER section for evidence, caveats, scripts and matched main_v11 CSV/ZIP.
 
 - [x] Round 2 (schedule changed: opens Sun 10:30, closes 12:00 CT, 20 pts; kit in kit2_x/, form https://forms.gle/tdPPza68SyrruAJ98). r2_v0 (r2.py) validation 19.396/20; r2_v1 (r2g.py global state, train-only fit) 19.740 -> submit runs/r2_v1/submission.csv + dist/r2_v1.zip (check OK, build VERIFIED). Pairs now (1,4),(3,8),(2,6).
+  Round-2 extra checks (eda/r2_variants*.py, validation /20): +machine offsets 19.741 (+0.0015, noise), +exact sparse GLM 19.714-19.716 (worse), +logit_corr no effect under global state -> keep r2_v1.

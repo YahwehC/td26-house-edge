@@ -1,0 +1,66 @@
+{
+ "v1": {
+  "points": 19.73985210864197,
+  "R": 0.013178816635821686,
+  "ratios": {
+   "drift": 0.009,
+   "shared_change": 0.01,
+   "short_history": 0.0196,
+   "stable": 0.0142
+  },
+  "err": {
+   "drift": 0.00181,
+   "shared_change": 0.00197,
+   "short_history": 0.00344,
+   "stable": 0.00258
+  }
+ },
+ "offset": {
+  "points": 19.741396741405712,
+  "R": 0.013099542143940227,
+  "ratios": {
+   "drift": 0.0087,
+   "shared_change": 0.0096,
+   "short_history": 0.0208,
+   "stable": 0.0133
+  },
+  "err": {
+   "drift": 0.00176,
+   "shared_change": 0.0019,
+   "short_history": 0.00365,
+   "stable": 0.00242
+  }
+ },
+ "offset+sparse": {
+  "points": 19.715609364696835,
+  "R": 0.014424643440765338,
+  "ratios": {
+   "drift": 0.0087,
+   "shared_change": 0.0096,
+   "short_history": 0.0261,
+   "stable": 0.0133
+  },
+  "err": {
+   "drift": 0.00176,
+   "shared_change": 0.0019,
+   "short_history": 0.00458,
+   "stable": 0.00242
+  }
+ },
+ "sparse": {
+  "points": 19.714015106999845,
+  "R": 0.014506679205019442,
+  "ratios": {
+   "drift": 0.009,
+   "shared_change": 0.01,
+   "short_history": 0.0249,
+   "stable": 0.0142
+  },
+  "err": {
+   "drift": 0.00181,
+   "shared_change": 0.00197,
+   "short_history": 0.00437,
+   "stable": 0.00258
+  }
+ }
+}
