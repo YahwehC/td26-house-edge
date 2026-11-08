@@ -170,11 +170,9 @@ Tried, no gain: others'-wins logit adjustment, additive lag effects, recency hal
    Runtime: ~2 min without sparse_joint; with it (adopted only if validation does not drop and projected test predict ≤ 900 s) up to ~35 min (sim kit_b test: +0.08, total 2151 s, zip predict 725 s). Start it right at 9 PM in the background.
    (main vs fallback per condition) → user uploads `runs\r2_v0\submission.csv` + `dist\r2_v0.zip` as safe first entry.
    If fallback >> main, the rule family changed → spend the time on step 3.
-2b. `.venvScriptspython.exe r2g.py --data kit2public --base runs
-2_v0params.json --name r2_v1` (~3 min): refits the
-   main_v9 global-state model (size-regime→win, peer lag taken from r2_v0 coupling, shared episode HMM) on kit2 TRAIN
-   histories, scores validation once vs r2_v0, builds+verifies `dist
-2_v1.zip` only if gain ≥ 0.02. Main-kit dry run
+2b. `.venv\Scripts\python.exe r2g.py --data kit2\public --base runs\r2_v0\params.json --name r2_v1` (~3 min): refits the
+   main_v9 global-state model (size-regime -> win, peer lag taken from r2_v0 coupling, shared episode HMM) on kit2 TRAIN
+   histories, scores validation once vs r2_v0, builds+verifies `dist\r2_v1.zip` only if gain >= 0.02. Main-kit dry run
    reproduces main_v9 exactly (59.052, test CSV identical, 150 s). Needs exactly 3 machine types (else stops).
 3. Check what changed ("which temporal relationships recur"): `params.json` votes (pairs, lags, lag_rule), episode
    classification counts, size vectors (2 per type still?), cell priors. Re-run EDA scripts (eda/eda3-4, eda9-10, ev15)
