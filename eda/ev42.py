@@ -1,4 +1,8 @@
-"""Pseudo-short episodes from train histories: keep 40 recent + 24 sampled ticks before a random cutoff c',
+"""LEGACY benchmark: shared old-tick masks and cutoffs starting at 120.
+Use eda/ev107.py for independent-mask and matched-cutoff model selection.
+Retained to reproduce historical experiments, not as a faithful official sampler.
+
+Pseudo-short episodes from train histories: keep 40 recent + 24 sampled ticks before a random cutoff c',
 target = one-hot of the realised payout at c'. Brier on realised outcomes is an unbiased proxy (up to a constant)
 of squared error vs true probs. Saves the pseudo queries to eda/_pshort.pkl for variant sweeps."""
 import sys, random, pickle, time
@@ -6,6 +10,7 @@ from collections import defaultdict
 sys.path.insert(0, '.')
 from he.model import load_split
 rng = random.Random(42)
+print('LEGACY shared-mask benchmark; use eda/ev107.py for faithful independent masks.', flush=True)
 qs, ex = load_split('kit/public', 'train')
 cm = {r["query_id"]: r["condition"] for r in ex["conditions"]}
 by = defaultdict(list)

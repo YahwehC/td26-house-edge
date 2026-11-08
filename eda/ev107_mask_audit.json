@@ -1,0 +1,88 @@
+{
+  "train": {
+    "episodes": 24,
+    "queries": 192,
+    "cutoff_range": [
+      193,
+      255
+    ],
+    "mean_cutoff": 225.79166666666666,
+    "mean_union_old_ticks": 124.79166666666667,
+    "mean_intersection_old_ticks": 0.0,
+    "unique_old_masks_histogram": {
+      "8": 24
+    }
+  },
+  "validation": {
+    "episodes": 24,
+    "queries": 192,
+    "cutoff_range": [
+      192,
+      254
+    ],
+    "mean_cutoff": 218.79166666666666,
+    "mean_union_old_ticks": 121.5,
+    "mean_intersection_old_ticks": 0.0,
+    "unique_old_masks_histogram": {
+      "8": 24
+    }
+  },
+  "test": {
+    "episodes": 48,
+    "queries": 384,
+    "cutoff_range": [
+      192,
+      255
+    ],
+    "mean_cutoff": 223.20833333333334,
+    "mean_union_old_ticks": 122.79166666666667,
+    "mean_intersection_old_ticks": 0.0,
+    "unique_old_masks_histogram": {
+      "8": 48
+    }
+  },
+  "old_pseudo": {
+    "episodes": 750,
+    "queries": 6000,
+    "cutoff_range": [
+      120,
+      252
+    ],
+    "mean_cutoff": 162.90266666666668,
+    "mean_union_old_ticks": 24.0,
+    "mean_intersection_old_ticks": 24.0,
+    "unique_old_masks_histogram": {
+      "1": 750
+    }
+  },
+  "independent_masks": {
+    "episodes": 750,
+    "queries": 6000,
+    "cutoff_range": [
+      120,
+      252
+    ],
+    "mean_cutoff": 162.90266666666668,
+    "mean_union_old_ticks": 98.79466666666667,
+    "mean_intersection_old_ticks": 0.0,
+    "unique_old_masks_histogram": {
+      "8": 750
+    }
+  },
+  "matched_short": {
+    "episodes": 600,
+    "queries": 4800,
+    "cutoff_range": [
+      192,
+      252
+    ],
+    "mean_cutoff": 205.345,
+    "mean_union_old_ticks": 117.99166666666666,
+    "mean_intersection_old_ticks": 0.0,
+    "unique_old_masks_histogram": {
+      "8": 600
+    }
+  },
+  "matched_sources": 24,
+  "caveat": "Matched cutoffs are limited by available stable train history; upper tail is underrepresented. Repeated windows cluster by original episode. Frozen priors still use their documented public-data fits."
+}

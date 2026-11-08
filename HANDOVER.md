@@ -6,6 +6,9 @@
 > AUDIT: pseudo-history experiments ev83-85/88 reused machine IDs across windows.
 > Machine offsets are now scoped to (episode, machine). Use corrected ev94-95 results;
 > the official validation/test predictions are unchanged. See the audit section below.
+> SECOND AUDIT: the legacy pseudo sampler shares old masks across machines and has
+> earlier cutoffs than official short histories. Use schema-3 benchmarks from ev107
+> for new model selection; ev108/109 recheck current models under independent masks.
 
 Goal: squeeze more points out of the TAMU Datathon 2026 "House Edge" forecasting entry. Read this first, then
 `CLAUDE.md` (full lab notebook: every experiment with numbers) and `README.md` (how to run). Everything here is
@@ -492,3 +495,76 @@ the offline checkpoint, provenance, and both newly enabled flags.
 Next experiment ev101 integrates the Gaussian machine-offset posterior jointly with
 exact missing-category recursion, using the already fixed prior variance .04 and five
 quadrature nodes. This is a train-only research run and is NOT enabled in v13.
+
+## Further inference checks (ev101-106)
+
+These pseudo-history numbers use the legacy shared-mask sampler. They are retained
+as diagnostics, not distribution-matched evidence; see the second audit below.
+- ev101: exact hidden-category recursion with a five-node Gaussian integral over the
+  machine intercept (fixed variance .04) worsens Brier +.00004960 (SE .00011104),
+  12/30 original episodes improve. No validation test; not enabled.
+- ev102: exact forward/backward machine messages retain lag-pair/sign uncertainty
+  when estimating weather. Each local message equals a complete forward likelihood
+  rerun with only that tick's weather perturbed; independent checks pass. The product
+  of these messages in a common weather HMM remains approximate because messages
+  from one machine are correlated. Train pseudo Brier improves -.00010239
+  (SE .00005227), but the single OOF validation ev106 gives 59.111705, below v13.
+  No production change; research implementation is NumPy-only and is not in the ZIP.
+- ev103: episode-cross-fitted component fits favor less than the legacy .02 size-noise
+  rate. Independent size noise fits .01015/0/0, full rate .002008; joint win/size regime
+  noise fits .00691/.00076/0, full rate .000963. Component tail Brier deltas are around
+  -.000026, but full pseudo forecasts with the fitted independent rates (ev104) are
+  neutral/slightly worse: +.00001475 (SE .00007415), 13/30 improve. Not enabled.
+- ev105: initial ticks already follow the lag rule as soon as both lags are observed.
+  On 188 unambiguous stable train machines, early high/low win rates are .763/.018
+  (balanced), .467/0 (jackpot), .975/.144 (steady), consistent with the later strong
+  high/low separation. Do not discard the first eight observations as IID bootstrap
+  data; the evidence contradicts that proposed simplification.
+
+## Second audit: actual short-history observation masks (ev107)
+
+Official short histories have independent old-tick samples for each of the eight
+machines. All 24 train / 24 validation / 48 test short episodes have eight different
+old masks and no old tick common to all machines. The mean union of old ticks is
+124.79 / 121.50 / 122.79 respectively. Their cutoffs span 193-255 / 192-254 / 192-255.
+Only input masks are inspected here; no target probabilities enter this audit.
+
+The legacy ev42 pseudo sampler instead shares ONE 24-tick mask across all machines,
+with cutoff range 120-252 and mean 162.90. This is an experimental-distribution mismatch,
+separate from the fixed machine-ID pooling bug. It can change the value of cross-machine
+information and sparsity handling. All real validation scores and test submissions
+remain unchanged, but legacy pseudo gains must not be treated as matched evidence.
+
+`eda/ev107.py` produces explicitly versioned schema-3 caches (ignored by git):
+- `_pshort_independent.pkl`: same 6,000 queries, cutoffs and targets as the old sampler,
+  but independent old masks per machine. This isolates the masking difference.
+- `_pshort_matched.pkl`: 4,800 queries, 24 original stable train episodes, independent
+  masks, cutoffs 192-252. Mean cutoff 205.35 still undershoots official means because
+  train source histories limit the upper tail. This limitation is explicit.
+Every case is checked against the original raw training history: 64 real observations,
+40 consecutive recent ticks, 24 old ticks, actual held-out payout target, and strict
+pre-cutoff inputs. The independent-mask control retains exactly the old target/cutoff
+pairs. `eda/test_pseudo_benchmarks.py` verifies these properties for both datasets.
+
+Use `eda/ev108.py` for matched cutoffs; `eda/ev108.py independent` generates ev109.
+They compare v12, v13 and episode-cross-fitted fallback weights. Prediction caches
+store a SHA-256 digest of the benchmark input to prevent accidental reuse across masks.
+
+Corrected benchmark results:
+- ev108 (matched independent masks, 4,800 queries / 24 original stable episodes):
+  v13 vs v12 Brier delta -.00082528 (SE .00051701), 16/24 improve. All three folds
+  select main weight 1.0 for both versions; the generic fallback does not help.
+- ev109 (independent masks, original cutoffs/targets, 6,000 queries / 30 sources):
+  v13 vs v12 delta -.00094480 (SE .00050618), 22/30 improve. Again all blend folds
+  select main weight 1.0. These checks support retaining v13; they do not create
+  a new official score or eliminate the previously stated sampling limitations.
+
+Next candidate ev110 uses the matched benchmark. Exact per-machine forward/backward
+smoothing estimates each unobserved peer win from that peer's observed history; one
+additional inference pass replaces empirical missing-peer win rates with those
+posterior probabilities. Observed peer wins/losses remain exact, and cutoff-time
+coupling is unchanged because the recent lag is observed. Offsets and the weather
+estimate remain frozen in this test, with no new tuned scalar. This is a research-only
+NumPy implementation, not enabled in v13. `eda/test_peer_smoothing.py` checks missing-win
+posteriors against sums of complete likelihood reruns after clamping each possible
+payout; all five clamped probabilities sum to one and agree with smoothing.

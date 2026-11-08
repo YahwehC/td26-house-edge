@@ -6,7 +6,7 @@ from he.model import SIZE_IDX, _pair_prior, DEFAULT_CFG, logsumexp
 from he.joint import lag_prior_marginal, lag_prior_for_pair
 
 
-def components(q, peers, params, config, hot, offset=0.):
+def components(q, peers, params, config, hot, offset=0., cavity=False, perturbation=None):
     cfg = dict(DEFAULT_CFG, **params['cfg'])
     pri = _pair_prior(cfg)
     marginal = lag_prior_marginal(cfg)
@@ -18,6 +18,7 @@ def components(q, peers, params, config, hot, offset=0.):
     vectors = np.array([[(1-eps)*vectors[r][k]+eps*vectors[1-r][k] for k in range(4)] for r in (0, 1)])
     seq, cutoff = q['seq'], q['cutoff']
     logs, predictions = [], []
+    details = {'messages':[], 'cold':[], 'hot':[], 'wins':[]}
     for (a, b), lp in pri.items():
         lag_weights = lag_prior_for_pair((a, b), cfg, marginal)
         lag = max(lag_weights, key=lag_weights.get)
@@ -52,9 +53,13 @@ def components(q, peers, params, config, hot, offset=0.):
                         break
                 loglike = lp-math.log(4)
                 cache = {peer: probabilities(peer, .5) for peer in set(peers.values())}
+                forwards = []
                 for tick in range(cutoff):
                     value = seq.get(tick)
-                    state = advance(state, cache[peers[tick]], value)
+                    if cavity:
+                        forwards.append(state.copy())
+                    rates = probabilities(peers[tick], perturbation[1]) if perturbation is not None and tick == perturbation[0] else cache[peers[tick]]
+                    state = advance(state, rates, value)
                     if value is not None:
                         norm = state.sum()
                         loglike += math.log(norm)
@@ -62,6 +67,41 @@ def components(q, peers, params, config, hot, offset=0.):
                 win = probabilities(peers[cutoff], hot)
                 predictions.append([float(np.sum(state*(1-win)))]+[float(np.sum(state*win*sizes[:, k])) for k in range(4)])
                 logs.append(loglike)
+                if cavity:
+                    for name, weather in (('cold',0.),('hot',1.)):
+                        rate = probabilities(peers[cutoff], weather)
+                        details[name].append([float(np.sum(state*(1-rate)))]+[float(np.sum(state*rate*sizes[:, k])) for k in range(4)])
+                    backward = np.ones(n)
+                    messages = {}
+                    smoothed_wins = {}
+                    for tick in range(cutoff-1, -1, -1):
+                        value = seq.get(tick)
+                        rate = cache[peers[tick]]
+                        if value is None:
+                            losing = (1-rate)*backward[dest[0]]
+                            winning = rate*(sizes[:,0]*backward[dest[1]]+(1-sizes[:,0])*backward[dest[2]])
+                            total = losing+winning
+                            smoothed_wins[tick] = float(np.sum(forwards[tick]*winning)/np.sum(forwards[tick]*total))
+                            backward = total
+                        else:
+                            smoothed_wins[tick] = float(value > 0)
+                            category = 0 if value == 0 else (1 if value == 1 else 2)
+                            downstream = backward[dest[category]]
+                            emission = 1-rate if value == 0 else rate*sizes[:,SIZE_IDX[value]]
+                            denominator = float(np.sum(forwards[tick]*emission*downstream))
+                            if cavity is True:
+                                ratio = []
+                                for weather in (0.,1.):
+                                    alternative = probabilities(peers[tick], weather)
+                                    em = 1-alternative if value == 0 else alternative*sizes[:,SIZE_IDX[value]]
+                                    ratio.append(float(np.sum(forwards[tick]*em*downstream))/denominator)
+                                messages[tick] = ratio
+                            backward = emission*downstream
+                        backward /= np.max(backward)
+                    details['messages'].append(messages)
+                    details['wins'].append(smoothed_wins)
+    if cavity:
+        return logs, predictions, details
     return logs, predictions
 
 
