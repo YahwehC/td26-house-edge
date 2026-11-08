@@ -1,8 +1,8 @@
 # House Edge — handover for another optimizer (Sat Nov 7, ~19:00 CT)
 
-> UPDATE: current best is **main_v11 (59.097439 episode-held-out calibration)**.
+> UPDATE: current best is **main_v12 (59.117106 episode-held-out calibration)**.
 > See the final section. Earlier claims of an irreducible 58.2-58.3 ceiling are retracted.
-> New submission pair: `runs/main_v11/submission.csv` and `dist/main_v11.zip`.
+> New submission pair: `runs/main_v12/submission.csv` and `dist/main_v12.zip`.
 
 Goal: squeeze more points out of the TAMU Datathon 2026 "House Edge" forecasting entry. Read this first, then
 `CLAUDE.md` (full lab notebook: every experiment with numbers) and `README.md` (how to run). Everything here is
@@ -301,7 +301,7 @@ Other newly tested rules:
   onset-time support. The pilot uses inferred pair/sign states, not ground-truth labels.
   Enabling a ramp only for drift in the episode mixture scores 59.06902, below v10;
   `global_state.drift_ramp` therefore remains absent in shipped params.
-- A causal train residual screen of own/peer lags, payouts and interactions (ev70)
+- A released-validation residual screen of own/peer lags, payouts and interactions (ev70)
   has max episode-clustered score |z| 2.44, own net over 8 ticks. No feature adopted.
 - Minimum-duration weather regimes (ev73) improve likelihood by only ~1.05 versus the
   existing memoryless filter; insufficient evidence to add complexity, not adopted.
@@ -339,3 +339,52 @@ These chronological diagnostics use latent structure inferred from full training
 histories, as in ev77; they are component checks, not fully causal end-to-end forecasts.
 Common-gap result: 59.09533271 versus v11 59.09743855, so the constraint is not adopted.
 It remains a generator-structure clue, not a demonstrated score improvement.
+
+## Continuing mechanism search and main_v12 (ev82-88)
+
+Current best candidate: **main_v12, 59.117106224**, up from v11 59.097438551.
+Matched artifacts: `runs/main_v12/submission.csv` and `dist/main_v12.zip`.
+The new global-state model no longer benefits from the legacy 10% generic fallback.
+`eda/ev85.py` fits one convex blend weight on two thirds of ORIGINAL training source
+episodes and evaluates the remaining third. All three folds choose main weight 1.0.
+On 6,000 pseudo-short queries / 30 source episodes, Brier delta versus weight .9 is
+-.00051450 (episode-cluster SE .00022610), with 22/30 episodes improving.
+This is an out-of-fold check of the BLEND choice; the frozen base priors/checkpoint
+still use previously documented public-data fitting. It is not a fully independent
+end-to-end training cross-fit.
+
+One subsequent held-episode calibration evaluation (`eda/ev87.py`) gives 59.117106.
+Ratios: stable .0062, drift .0112, shared .0073, short .0350. Short history worsens
+versus v11 (.0329), despite the training pseudo-short improvement. Retain v11 as a
+fallback artifact; the small public-score improvement does not establish private-test
+superiority. v12 changes only the final blend, with no new validation-fitted scalar.
+The default absence of `blend` and `fallback` means pure main prediction.
+
+Verification: all 1,536 test rows pass format checking. ZIP extraction and inference
+under Python 3.13 exactly reproduce the CSV (max difference 0). Packaged `train.py`
+refits the old priors, preserves the offline global-state checkpoint and metadata,
+and produces exactly the same v12 parameter JSON. Future-tick exclusion remains
+bit-identical (`eda/test_global_state.py`). Rebuild with `eda/build_v12.py` and
+`build_entry.py` using the usual paths.
+
+Other tested mechanisms, all DISABLED in v12:
+- ev82: asymmetric hot/cold switch hazards and a previous-tick win-rate trigger do
+  not improve episode-held-out train tail likelihood. Mean gains -.01396 and -.01395
+  respectively (SE about .01297). Re-estimating one symmetric hazard also loses.
+- ev83: missing peer observations formerly contribute zero wins. Replacing missing
+  values by smoothed empirical peer win rates yields pseudo-short Brier delta
+  +.00005778 (SE .00006435); no validation test, not enabled.
+- ev84/86: other-machine-only weather smoothing in historical hypothesis likelihoods
+  improves pseudo-short Brier -.00021097 (SE .00015842), but the single held-episode
+  validation check is 59.092612 versus v11 59.097439. Not enabled. The forward-backward
+  calculation matches exhaustive weather-path enumeration (`test_weather_history.py`).
+- ev88: jointly integrate each short-history pair/sign hypothesis, its persistent
+  machine intercept (five-point normal quadrature, fixed variance .04), and binary
+  weather path, conditional on fixed other-machine emissions. Missing own lags retain
+  empirical marginalization. Pseudo-short Brier worsens +.00076024 (SE .00041083),
+  only 9/30 source episodes improve. No validation test, not enabled. Independent
+  path enumeration and normal moments through degree eight pass.
+
+Correction to the earlier residual-screen description: `eda/ev70.py` uses released
+validation target residuals, not train-history outcomes. Its maximum cluster z=2.44
+was a diagnostic of that public set and supplied no new production coefficient.

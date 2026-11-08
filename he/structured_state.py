@@ -5,6 +5,7 @@ from .model import DEFAULT_CFG, _pair_prior, SIZE_IDX
 from .joint import episode_posterior_joint,lag_prior_marginal,lag_prior_for_pair
 from .global_state import state_rows
 from .weather import filter_episode
+from .peer import peer_winners
 
 
 def predict(queries,params,config):
@@ -13,6 +14,7 @@ def predict(queries,params,config):
     for q in queries:by[q['episode_id']].append(q)
     # Obtain a history-based shared-state estimate before the forecast tick.
     rows,_=state_rows(queries,params);traces=defaultdict(lambda:defaultdict(list));cuts={}
+    machine_emissions=defaultdict(lambda:defaultdict(list))
     from .machine_offset import estimate_offsets
     offsets = estimate_offsets(rows, config)
     for r in rows:
@@ -30,20 +32,33 @@ def predict(queries,params,config):
                 probabilities.append(probability)
             eta = probabilities
         traces[r['episode']][r['tick']].append((eta,r['y']));cuts[r['episode']]=r['cutoff']
+        if config.get('history_weather') or config.get('short_joint_weather'):
+            machine_emissions[r['episode']][r['tick']].append((r['machine'],eta,r['y']))
     hot={ep:filter_episode((cuts[ep],ts),scale,config['hazard'])[1] for ep,ts in traces.items()}
     result={}
     class Machine:
         pass
     for ep,qs in by.items():
         machines=[];regimes=[];weather_histories=[];weather_forecasts=[];short=sum(len(q['seq']) for q in qs)<.6*sum(q['cutoff'] for q in qs)
+        if short and config.get('short_joint_weather'):
+            from .short_weather_joint import predict as short_predict
+            for q in qs:
+                result[q['query_id']] = short_predict(q, qs, params, config, machine_emissions[ep])
+            continue
         if short and cfg.get('exact_sparse_glm'):
             from .sparse_glm import predict as sparse_predict
             for q in qs:
-                peers={t:sum(other['seq'].get(t-int(cfg.get('peer_lag',3)),0)>0 for other in qs if other is not q) for t in range(q['cutoff']+1)}
+                peers={t:peer_winners(qs,q,t-int(cfg.get('peer_lag',3)),cfg.get('marginalize_missing_peers',False)) for t in range(q['cutoff']+1)}
                 result[q['query_id']]=sparse_predict(q,peers,params,config,hot.get(ep,.5))
             continue
         for q in qs:
             seq=q['seq'];cut=q['cutoff'];m=Machine();m.q=q;m.taus=[] if short else list(range(cfg['tau_lo'],cut+1));m.pairs=[];m.pair_logprior={};m.lml_stable={};m.lml_tau={};m.pred_stable={};m.pred_tau={};reg={}
+            historical_hot = None
+            if config.get('history_weather'):
+                from .weather_history import smooth_weather
+                other_times = {t:[(eta,y) for mid,eta,y in records if mid != q['machine_id']]
+                               for t,records in machine_emissions[ep].items()}
+                historical_hot = smooth_weather(cut,other_times,scale,config['hazard'])
             ramp = config.get('drift_ramp', 0)
             histories, forecasts = {}, {}
             if ramp:
@@ -51,7 +66,7 @@ def predict(queries,params,config):
                 m.drift_pred_tau = {}
             V=params['size_vectors'][q['machine_type']];eps=cfg['size_eps'];V=[[(1-eps)*V[r][k]+eps*V[1-r][k] for k in range(4)] for r in (0,1)]
             typeidx=types.index(q['machine_type']);ticks=sorted(seq);emp=[(sum(v==0 for v in seq.values())+1)/(len(seq)+3),(sum(v==1 for v in seq.values())+1)/(len(seq)+3),(sum(v>=2 for v in seq.values())+1)/(len(seq)+3)]
-            peers={t:sum(other['seq'].get(t-int(cfg.get('peer_lag',3)),0)>0 for other in qs if other is not q) for t in ticks+[cut]}
+            peers={t:peer_winners(qs,q,t-int(cfg.get('peer_lag',3)),cfg.get('marginalize_missing_peers',False)) for t in ticks+[cut]}
             for (a,b),lp in pri.items():
                 lag=max(lag_prior_for_pair((a,b),cfg,marg),key=lag_prior_for_pair((a,b),cfg,marg).get)
                 for orientation in (0,1):
@@ -76,8 +91,9 @@ def predict(queries,params,config):
                         before=[0.];after=[0.];p_before=[];p_after=[];local_weather=[]
                         for t in ticks:
                             value=seq[t];idx=0 if value==0 else SIZE_IDX[value]+1
-                            p_before.append(max(distribution(t,0,.5)[idx],1e-300))
-                            p_after.append(max(distribution(t,1,.5)[idx],1e-300))
+                            weather = .5 if historical_hot is None else historical_hot[t]
+                            p_before.append(max(distribution(t,0,weather)[idx],1e-300))
+                            p_after.append(max(distribution(t,1,weather)[idx],1e-300))
                             before.append(before[-1]+math.log(p_before[-1]))
                             after.append(after[-1]+math.log(p_after[-1]))
                             if config.get('joint_weather'):

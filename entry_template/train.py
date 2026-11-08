@@ -3,7 +3,7 @@
     python train.py --data /path/to/public --out params.json [--w-main W]
 
 W = weight of the main model in the blend with the generic fallback model (he/fallback.py);
-default: the weight stored in the bundled params.json (chosen on validation by r2.py).
+default: the weight stored in the bundled params.json, or 1 when no blend is bundled.
 """
 import sys
 sys.dont_write_bytecode = True

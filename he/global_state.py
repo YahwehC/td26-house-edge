@@ -4,6 +4,7 @@ from collections import defaultdict
 from .model import DEFAULT_CFG, WinMachine, _pair_prior, betaln, logsumexp
 from .joint import SizeEvidence, lag_prior_marginal, lag_prior_for_pair, episode_posterior_joint
 from .weather import filter_episode
+from .peer import peer_winners
 
 def state_rows(qs,p):
     cfg=dict(DEFAULT_CFG,**p['cfg']);lp=_pair_prior(cfg);marg=lag_prior_marginal(cfg);by=defaultdict(list)
@@ -37,7 +38,7 @@ def state_rows(qs,p):
                 if t<8 or t-a not in seq or t-b not in seq or t-lag not in seq:continue
                 z=int((seq[t-a]>0)==(seq[t-b]>0))^int(t>=tau);high=int((z^ori)==0)
                 bit=int(seq[t-lag]>=2);r=(1-s1)*bit+s1*(1-bit)
-                other=sum(other['seq'].get(t-int(cfg.get('peer_lag',3)),0)>0 for other in ms if other is not q)
+                other=peer_winners(ms,q,t-int(cfg.get('peer_lag',3)),cfg.get('marginalize_missing_peers',False))
                 row={'episode':ep,'machine':q['machine_id'],'type':q['machine_type'],'signal':q['signal'],'high':high,'regime':r,'peer':other,'tick':t,'y':int(seq.get(t,0)>0),'cutoff':cut}
                 row['high_probability'] = orientation_zero if z==0 else 1-orientation_zero
                 row['pair_confidence'] = post[pa]

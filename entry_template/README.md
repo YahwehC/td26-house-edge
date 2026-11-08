@@ -35,7 +35,9 @@ Structured Bayesian forecaster (`he/`):
 - Insurance blend (`he/fallback.py`): a generic Bayesian context model (any boolean function of up to two
   win lags, optional single change point; size given win conditioned on one big-payout lag), averaged over
   contexts with empirical-Bayes priors. Final forecast = w * main + (1 - w) * fallback, with w
-  (`params.json` -> `blend.w_main`) chosen on validation.
+  (`params.json` -> `blend.w_main`) stored in the checkpoint. If no blend is bundled,
+  the main model is used alone. For main_v12, all three original-episode folds of
+  training pseudo-short histories select main weight 1.0; validation is a later check.
 - Cross-machine coupling (`he/coupling.py`, applied by `he/corr.py`): the win-probability logit is shifted by
   beta . (x - mu), x = (number of OTHER machines of the episode that won 3 ticks before the cutoff, recent net
   payout of the other machines). beta, mu come from a logistic regression on the per-tick outcomes of train +
