@@ -1,0 +1,26 @@
+{
+  "matched": {
+    "v13_fold_weights": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "full_weight": 1.0,
+    "delta_vs_v13": 0.0,
+    "cluster_se": 0.0,
+    "improved": 0,
+    "episodes": 24
+  },
+  "independent": {
+    "v13_fold_weights": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "full_weight": 1.0,
+    "delta_vs_v13": 0.0,
+    "cluster_se": 0.0,
+    "improved": 0,
+    "episodes": 30
+  }
+}
